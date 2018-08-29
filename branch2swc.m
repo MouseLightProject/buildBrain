@@ -1,5 +1,8 @@
-function branch2swc(params,branches,swcoutfolder)
+function branch2swc(params,branches,swcoutfolder,full)
 %%
+if nargin<4
+    full=0;
+end
 numbranches = length(branches);
 colscomp = jet(numbranches);
 colscomp = colscomp(randperm(numbranches),:);
@@ -11,13 +14,14 @@ parfor iter = 1:numbranches
     subs = branches(iter).subs;
     len = size(subs,1);
     % downsample for visualization on JW
-    selected_inds = [1:5:round(len-5) len];
-    if len<16
+    if full
+        selected_inds = 1:len;
+    elseif len<16
         selected_inds = round(len/2);
     else
         selected_inds = [6:5:round(len-10) len-5];
     end
-    if isempty(selected_inds) | selected_inds<1
+    if isempty(selected_inds) | selected_inds<1 | length(selected_inds)<2
         continue
     end
     subs = subs(selected_inds,:);

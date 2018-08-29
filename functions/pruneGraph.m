@@ -22,7 +22,7 @@ if 1
     if 1
         tic
         filt{1}{1} = 'graphfuncs.filtGsize';
-        filt{1}{2} = {5*sizeThr};
+        filt{1}{2} = {2*sizeThr};
         [Gfilt,subsfilt] = filterGraph(Gin,subsin,filt);
         %     [Gfilt,subsfilt] = filterGraph(Gin,subsin,{'filtGsize'},{sizeThr});
         sprintf('FILTER DONE in %d sec',round(toc))

@@ -11,11 +11,6 @@ w=zeros(num_edges,4);
 conn=zeros(num_edges,1);
 tic
 parfor idx=1:num_edges
-    %%
-%     if ~rem(idx,round(length(ix)/1000))
-%         sprintf('%d in %d sec',idx)
-%         %sprintf('%d in %d sec',idx,round(toc))
-%     end
     br1 = branches(ix(idx)).inds;%path;
     sub1 = branches(ix(idx)).subs;%subs(br1,:);
     br2 = branches(iy(idx)).inds;%path;
@@ -70,8 +65,8 @@ D{end+1} = sparse(ix,iy,conn(:),nA,nA);
 % D{1} = sparse(ix,iy,w(:,1),nA,nA);
 % D{2} = sparse(ix,iy,w(:,2),nA,nA);
 % D{3} = sparse(ix,iy,w(:,3),nA,nA);
-% 
-% 
+%
+%
 % W1 = inf(nA);
 % W1(connG) = w(:,1); % theta
 % W2 = inf(nA);
@@ -80,6 +75,8 @@ D{end+1} = sparse(ix,iy,conn(:),nA,nA);
 % W3(connG) = w(:,3); % KL
 % W = cat(3,max(W1,W1'),max(W2,W2'),max(W3,W3'));
 end
+
+%%%%%%%
 function alignmentdist = alignmentS(br1,sub1,br2,sub2)
 
 %%
@@ -128,10 +125,10 @@ else
         X_ = [X-meanX];
         [coeff,roots] = eig(X_'*X_);
         %[coeff,roots] = eig(cov(X_));
-        %roots = diag(roots);
-        %rmse = sqrt(sum(roots(1:2)));
-        score = X_*coeff;
-        rmse = sqrt(mean(sum((X_-score(:,1)*coeff(:,1)').^2,2)));
+        [roots,inds] = sort(diag(roots),'descend');
+        coeff = coeff(:,inds);
+        reconstructed_signal = (X_*coeff(:,1))*coeff(:,1)';
+        rmse = sqrt(mean(sum((X_-reconstructed_signal).^2,2)));
     else
         [coeff,score,roots] = pca(X);
         Xfit = repmat(meanX,n,1) + score(:,1)*coeff(:,1)';
@@ -144,8 +141,6 @@ score1 = min(1e3,1/2*(trace(A\B) -length(sub1(1,:)) - log(det(A)/det(B))));
 score2 = min(1e5,1/2*(trace(B\A) -length(sub1(1,:)) - log(det(B)/det(A))));
 warning('on')
 alignmentdist(end+1) = sqrt(abs(score1*score2));
-
-
 %%
 % it=0
 % figure(123),cla
@@ -153,12 +148,7 @@ alignmentdist(end+1) = sqrt(abs(score1*score2));
 % % gplot3(A,subs,'b')
 % myplot3(sub1(end-[10:-1:0],:),'-r')
 % myplot3(sub2(1:10,:),'-m')
-
-
-
 end
-
-
 
 
 

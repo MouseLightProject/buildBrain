@@ -13,3 +13,5 @@ if length(pos) > 2
     output_txt{end+1} = ['Z: ',num2str(pos(3),5)];
 end
 disp(num2str(pos,5))
+load('params.mat')
+round(pix2um(params,[pos]))

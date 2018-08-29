@@ -1,4 +1,8 @@
-function [hits_gt,hits_delete,swcout,gtfile] = cropSectionBasedOnGT(params,gt_swcfolder,subs)
+function [hits_gt,hits_delete,swcout,gtfile] = cropSectionBasedOnGT(params,gt_swcfolder,subs,distThr)
+%%
+if nargin<4
+    distThr = 25;
+end
 hits_delete= [];
 %% TODO upsample swc to make search better !!!!
 [swcout,swcfiles] = loadSwcFolder(gt_swcfolder);
@@ -45,7 +49,7 @@ end
 %%
 gtum = cat(1,gtum{:});
 % make sure to keep these indicies
-hits_gt = maskWithInputLocations(subs,um2pix(params,gtum)+1);
+hits_gt = maskWithInputLocations(subs,um2pix(params,gtum)+1,distThr);
 
 %% stuf that enters and exists temporaryly
 deleteum = [];
@@ -57,7 +61,7 @@ for iswc=1:length(swcout)
 end
 if ~isempty(deleteum)
     deleteum = cat(1,deleteum{:});
-    hits_delete = maskWithInputLocations(subs,um2pix(params,deleteum));
+    hits_delete = maskWithInputLocations(subs,um2pix(params,deleteum)+1,distThr);
 end
 % make sure to keep these indicies
 

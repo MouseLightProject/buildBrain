@@ -2,9 +2,11 @@ function workflow2(opt,tempfold,tag,G,subs,branches,nodeBrid)
 %%
 params=opt.params;
 %% dump each branch as a seperate swc file
-branch_swcoutfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2017-09-25/striatum/workflow2-cleaned'
-if exist('branch_swcoutfolder','var') 
-    branch2swc(params,branches,branch_swcoutfolder)
+fold_path = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2017-09-25/striatum/'
+branch_swcoutfolder = fullfile(fold_path,'workflow2-updated-full')
+mkdir(branch_swcoutfolder)
+if exist('branch_swcoutfolder','var') & 1
+    branch2swc(params,branches,branch_swcoutfolder,1)
 end
 %%
 if 0
@@ -19,7 +21,7 @@ end
 %%
 %%
 % RUN graph simalirity functions
-if 0
+if 1
     querdist = 50;
     branch_pair_distance = graphfuncs.branchConn(branches,subs,nodeBrid,querdist); % pwdist of branches
     [aa,bb,cc] = find(branch_pair_distance);
@@ -27,6 +29,7 @@ if 0
     branch_pair_dissimilarity = graphfuncs.calcDists(branches,branch_pair_connectivity);
     %%
     save(fullfile(tempfold,['branchConn',tag]),'branch_pair_distance','branch_pair_dissimilarity')
+    save(fullfile(tempfold,['branchConn']),'branch_pair_distance','branch_pair_dissimilarity')
 else
     load(fullfile(tempfold,['branchConn',tag]),'branch_pair_distance','branch_pair_dissimilarity')
 end
@@ -36,6 +39,7 @@ if 1
     %%
     clear GT
     swcfold = '/nrs/mouselight/seggui/swcfiles/GT/2017-09-25_striatum_neurons_CA'
+    swcfold = '/nrs/mouselight/seggui/swcfiles/GT/2017-09-25_striatum_neurons_temp'
     myfiles=dir(fullfile(swcfold,'*.swc'));
     swcgts={myfiles.name};
     swcgts = swcgts(~cellfun(@(x) contains(x,'mask'),swcgts));
@@ -47,11 +51,12 @@ if 1
         str_ = strsplit(str_{end},'.');
         fileinds(ii) = str2double(str_{1});
     end
-    [~,sortedinds] = sort(fileinds);
+    [fileinds,sortedinds] = sort(fileinds);
     swcgts = swcgts(sortedinds);
     
     swcgts=cellfun(@(x) fullfile(swcfold,x),swcgts, 'UniformOutput',false);
     index = 1:n_sources;
+    index = fileinds;
     [swcpixlocs,connMatrix,swcfilepath] = loadGT(swcgts,params,index);
     GT.swcpixlocs = swcpixlocs;
     GT.connMatrix = connMatrix;
@@ -60,48 +65,24 @@ if 1
     % for every branch get head-mid-tail, then get acc of GT locations,
     % make assignment of branches to GT
     if 1
+        %%
         frag_assignment = assign_frags_to_GT(branches,subs,GT);
         GT.frag_assignment = frag_assignment;
-    else
-        tmp = cell(1,n_sources);
-        parfor is=1:n_sources
-            %%
-            swclocs = GT.swcpixlocs{is};
-            [initass,initR] = knnsearch(subs,swclocs,'k',1);
-            initass = initass(initR<3);
-            %%
-            % only keep nodes that have single id
-            tr=[];
-            for it = 1:length(initass)
-                if length(nodeBrid{initass(it)})==1
-                    tr{end+1} = nodeBrid{initass(it)};
-                end
-            end
-            tr = unique([tr{:}]);
-            tmp{is} = tr;
-            
-            %%
-            if 1
-                figure(32),cla
-                is2=4
-                gplot3(GT.connMatrix{is},pix2um(params,GT.swcpixlocs{is}-1),'-');
-                for ii=GT.frag_assignment{is}
-                    hold on
-                    myplot3(pix2um(params,branches((ii)).subs-1),'g-');
-                end
-                for ii=init.frag_assignment{is}
-                    hold on
-                    myplot3(pix2um(params,branches((ii)).subs-1),'r-');
-                end
-            end
+        
+        %%
+        is = 25
+        figure(32),cla
+        hold on
+        for ii = 1:length(frag_assignment{is})
+            myplot3(branches(frag_assignment{is}(ii)).subs,{'-','LineWidth',6});
         end
-        for is=1:n_sources
-            GT.frag_assignment{is} = tmp{is};
-        end
+%         myplot3(branches(5748).subs,{'-','LineWidth',6});
+        gplot3(GT.connMatrix{is},GT.swcpixlocs{is},'-','MarkerSize',4);
+        
     end
 %%    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
-%%    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
     %% create init from GT:
+    1
     init = GT;
     for is=1:length(swcgts)
         %%
@@ -132,7 +113,11 @@ if 1
                 these_branches(end+1) = il;
             end
         end
-        init.frag_assignment{is} = these_branches;
+        if isempty(these_branches)
+            init.frag_assignment{is} = GT.frag_assignment{is}(randperm(length(GT.frag_assignment{is}),5));
+        else
+            init.frag_assignment{is} = these_branches;
+        end
     end
     %%
     % make sure inits do not intersect
@@ -145,45 +130,32 @@ if 1
             if int
                 [is1 is2]
                 warning('matching branches')
+            else
+                init.frag_assignment{is1} = ...
+                    setdiff(init.frag_assignment{is1},int);
+                init.frag_assignment{is2} = ...
+                    setdiff(init.frag_assignment{is2},int);
             end
-            init.frag_assignment{is1} = ...
-                setdiff(init.frag_assignment{is1},int);
-            init.frag_assignment{is2} = ...
-                setdiff(init.frag_assignment{is2},int);
         end
     end
-    %%
-else
-    swcfold = './Consensus'
-    clear swcfile GT
-    swcfile{1} = fullfile(swcfold,'2015-06-19_G-001_consensus.swc');
-    swcfile{2} = fullfile(swcfold,'2015-06-19_G-003_AZ.swc');
-    swcfile{3} = fullfile(swcfold,'2015-06-19_G-004_consensus.swc');
-    swcfile{4} = fullfile(swcfold,'2015-06-19_G-005_CA.swc');
-    swcfile{5} = fullfile(swcfold,'2015-06-19_G-006_consensus_CA-PB.swc');
-    swcfile{6} = fullfile(swcfold,'2015-06-19_G-007-consensus.swc');
-    swcfile{7} = fullfile(swcfold,'2015-06-19_G-008_consensus_new.swc');
-    swcfile{8} = fullfile(swcfold,'2015-06-19_G-010_agreement.swc');
-    swcfile{9} = fullfile(swcfold,'2015-06-19_G-011_consensus.swc');
-    index = [1 3 4 5 6 7 8 10 11 12];
-    [swcpixlocs,connMatrix] = loadGT(swcfile,params,index);
-    GT.swcpixlocs = swcpixlocs;
-    GT.connMatrix = connMatrix;
+end
+
+%%
+if 0
+    clear init
+    % load dendrite/main axon for validation
+    swcfold = '/groups/mousebrainmicro/mousebrainmicro/erhan_dm11/annotations_2015-06-19/GN_initialization/';
+    myfiles=dir([swcfold,'*.swc']);
+    swcinits={myfiles.name};
+    swcinits=cellfun(@(x) fullfile(swcfold,x),swcinits, 'UniformOutput',false);
+    index = [1 3 4 5 6 7 8 9 10 11 12 13];
+    [swcpixlocs,connMatrix,swcfilepath] = loadGT(swcinits,params,index);
+    init.swcpixlocs = swcpixlocs;
+    init.connMatrix = connMatrix;
+    init.swcfilepath = swcfilepath;
 end
 %%
-%%%%
-clear init
-% load dendrite/main axon for validation
-swcfold = '/groups/mousebrainmicro/mousebrainmicro/erhan_dm11/annotations_2015-06-19/GN_initialization/';
-myfiles=dir([swcfold,'*.swc']);
-swcinits={myfiles.name};
-swcinits=cellfun(@(x) fullfile(swcfold,x),swcinits, 'UniformOutput',false);
-index = [1 3 4 5 6 7 8 9 10 11 12 13];
-[swcpixlocs,connMatrix,swcfilepath] = loadGT(swcinits,params,index);
-init.swcpixlocs = swcpixlocs;
-init.connMatrix = connMatrix;
-init.swcfilepath = swcfilepath;
-%%
+
 iter = 1;
 clear neuron
 fnames = fieldnames(init)';
@@ -205,7 +177,8 @@ for idx=index(:)'
     end
     iter = iter+1;
 end
-save(fullfile(tempfold,['neuronaxon',tag]),'neuron')
+%%
+save(fullfile('/nrs/mouselight/seggui',['neuronaxon',tag]),'neuron')
 
 %%
 ran = max(subs);

@@ -60,7 +60,7 @@ if ~initialpass
     end
 end
 disp('done skip')
-%% skipped 900
+%% 
 try parfor_progress(0);catch;end
 parfor_progress(max(validC))
 parfor mC=validC
@@ -126,7 +126,8 @@ parfor mC=validC
         outtree = sampleTree(inupdate,opt);
     end
     if opt.viz
-        %                 gplot3(inupdate.dA,[inupdate.X,inupdate.Y,inupdate.Z],'LineWidth',3);
+        cla
+        gplot3(inupdate.dA,[inupdate.X,inupdate.Y,inupdate.Z],'LineWidth',3);
         hold on
         gplot3(outtree.dA,[outtree.X,outtree.Y,outtree.Z],'--','LineWidth',3);
         drawnow

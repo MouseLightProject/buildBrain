@@ -15,8 +15,9 @@ if 1
     labels = cat(2,labels{:});
     [initass,initR] = knnsearch(swc_locs,subs,'k',1);
     % 5331
+    %%
     frag_assignment = cell(1,n_sources);
-    for ibr = 1:n_branches
+    for ibr = 1:n_branches%[5719        5747        5748]%
         %%
         assign = false;
         assign_from_maxima = false;
@@ -27,13 +28,13 @@ if 1
             assign = true;
         elseif median(initR(branches(ibr).inds,:))<5
             assign = true;
-        elseif length(localmaximas) & all(localmaximas~=[1 length(hits)])
+        elseif length(localmaximas)>1 & all(localmaximas~=[1 length(hits)])
             assign = false;
             assign_from_maxima = true;
         end
         
         if assign
-            lab = median(labels(initass(branches(ibr).inds,:)));
+            lab = mode(labels(initass(branches(ibr).inds,:)));
             if round(lab)==lab
                 frag_assignment{lab}(end+1) = ibr;
             end
