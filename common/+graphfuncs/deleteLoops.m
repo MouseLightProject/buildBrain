@@ -34,7 +34,7 @@ parfor idxC = 1:S
     parfor_progress;
     indsC = CompsC{idxC};
     subs_ = subs(indsC,:);
-    if length(indsC)<500 % x100 faster for large A & small |indsC|
+    if false && length(indsC)<500  % x100 faster for large A & small |indsC|
         [aa,bb]=ndgrid(indsC,indsC);
         A_ = reshape(A(sub2ind(size(A),aa(:),bb(:))),length(indsC),length(indsC));
     else

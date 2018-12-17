@@ -1,4 +1,4 @@
-function [outputArgs] = buildBrain(configfile)
+function [outputArgs] = buildBrain_workflow1(configfile)
 %BUILDBRAIN Aggregrates skeletonization results and build connectivity
 %graph of the brain
 %
@@ -160,116 +160,116 @@ end
 %%
 % [A,subs] = filterEdges(A,subs,params)
 
-%
-tstart = tic;
-affinityBuilder(opt,A,subs)
-sprintf('FINISHED IN: %d', round(toc(tstart)))
-return
+% %
+% tstart = tic;
+% affinityBuilder(opt,A,subs)
+% sprintf('FINISHED IN: %d', round(toc(tstart)))
+% return
 
 %%
 Gin = graph(max(A,A'));
 workflow1(Gin,subs,opt)
 
-%% filter out results based on manual recons - this is for presentation only
-if 0
-    %swcfolder = '/groups/mouseprojects/home/base/CODE/MATLAB/recontree/malazgirt/singlespace'
-    %%
-    %     swcfolder = '/groups/mouseprojects/home/base/CODE/MATLAB/recontree/malazgirt/singlespace'
-    %     swcfiles = dir([swcfolder,'/*.swc']);
-    swcfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2017-09-11/cropSWC'
-    swcfiles = dir(fullfile(swcfolder,'*.swc'))
-    numSWCs = length(swcfiles);
-    %%
-    DATA = [];
-    upDATA = [];
-    for ii=1:numSWCs
-        %%
-        [swcData,offset,color, header] = loadSWC(fullfile(swcfolder,swcfiles(ii).name));
-        swcData(:,3:5) = swcData(:,3:5) + ones(size(swcData,1),1)*offset;
-        swcData(:,3:5) = swcData(:,3:5)*1000;
-        %%
-        % upsample points that are consequtive
-        upthese = diff(swcData(:,7))==1;
-        pd=round(sqrt(sum(diff(swcData(:,3:5)).^2,2)));
-        idxup = find(upthese);
-        updata_ = [];
-        for jj=idxup(:)'
-            st = swcData(jj,:);
-            en = swcData(jj+1,:);
-            sl = en-st;
-            sp = [[1:1e3:pd(jj)-1 pd(jj)]/pd(jj)];
-            %updata = [updata sl(:)*sp+st(:)*ones(1,length(sp))];
-            updata_{jj} = [sl(:)*sp+st(:)*ones(1,length(sp))];
-        end
-        upDATA = cat(1,upDATA,[updata_{:}]');
-        DATA=cat(1,DATA,swcData);
-    end
-    %%
-    pixsDATA = um2pix(params,DATA(:,3:5)/1000);
-    pixsupdata = um2pix(params,upDATA(:,3:5)/1000);
-    pixs = pixsupdata;
-    %     pixs = pixsDATA;
-    % pixs(pixs(:,2)<3000,:)=[];
-    %
-    [idxknn,dknn]=knnsearch(subs,pixs,'K',1);
-    validC = unique(Comps(idxknn(dknn<15)));
-    %%
-    if opt.viz % visualize clusters
-        %%
-        figure(22),
-        cla
-        plot3(pixs(:,1),pixs(:,2),pixs(:,3),'.k','MarkerSize',1)
-        hold on
-        axis equal tight
-        set(gca,'Ydir','reverse')
-        iter = 0;
-        for mC=ib(ia>100)%(1:100)%validC%1:size(Y,2)%ib(2:500)%
-            % for each cluster run reconstruction
-            if Y(mC)>opt.sizethreshold & ismember(mC,validC) %& ~(mC==ib(1))
-                %             if Y(mC)>opt.sizethreshold & ismember(mC,validC)
-                iter = iter+1;
-                if ~rem(iter,round(length(validC)/100))
-                    iter
-                end
-                subidx = find(Comps==mC);
-                plot3(subs(subidx,1),subs(subidx,2),subs(subidx,3),'.')
-            end
-            drawnow
-        end
-    end
-else
-    validC = 1:size(Y,2);
-end
-%%
-if 0
-    %%
-    figure(90),
-    plot3(subs(:,1),subs(:,2),subs(:,3),'.k','MarkerSize',.1)
-    hold on
-    axis equal tight
-    set(gca,'Ydir','reverse')
-    %%
-    figure(21),
-    cla
-    plot3(pixs(:,1),pixs(:,2),pixs(:,3),'.k','MarkerSize',.1)
-    hold on
-    axis equal tight
-    set(gca,'Ydir','reverse')
-end
-%%
-if 0
-    if 0
-        reconComp(opt,validC,Y,A_,Comps,subs,params)
-    else
-        Gin = graph(max(A,A'));
-        workflow1(Gin,subs,opt)
-    end
-else
-    tstart = tic;
-    affinityBuilder(opt,validC,Y,A_,Comps,subs)
-    sprintf('FINISHED IN: %d', round(toc(tstart)))
-end
-%%
-% reconComptest(opt,validC,Y,A_,Comps,subs,params)
+% %% filter out results based on manual recons - this is for presentation only
+% if 0
+%     %swcfolder = '/groups/mouseprojects/home/base/CODE/MATLAB/recontree/malazgirt/singlespace'
+%     %%
+%     %     swcfolder = '/groups/mouseprojects/home/base/CODE/MATLAB/recontree/malazgirt/singlespace'
+%     %     swcfiles = dir([swcfolder,'/*.swc']);
+%     swcfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2017-09-11/cropSWC'
+%     swcfiles = dir(fullfile(swcfolder,'*.swc'))
+%     numSWCs = length(swcfiles);
+%     %%
+%     DATA = [];
+%     upDATA = [];
+%     for ii=1:numSWCs
+%         %%
+%         [swcData,offset,color, header] = loadSWC(fullfile(swcfolder,swcfiles(ii).name));
+%         swcData(:,3:5) = swcData(:,3:5) + ones(size(swcData,1),1)*offset;
+%         swcData(:,3:5) = swcData(:,3:5)*1000;
+%         %%
+%         % upsample points that are consequtive
+%         upthese = diff(swcData(:,7))==1;
+%         pd=round(sqrt(sum(diff(swcData(:,3:5)).^2,2)));
+%         idxup = find(upthese);
+%         updata_ = [];
+%         for jj=idxup(:)'
+%             st = swcData(jj,:);
+%             en = swcData(jj+1,:);
+%             sl = en-st;
+%             sp = [[1:1e3:pd(jj)-1 pd(jj)]/pd(jj)];
+%             %updata = [updata sl(:)*sp+st(:)*ones(1,length(sp))];
+%             updata_{jj} = [sl(:)*sp+st(:)*ones(1,length(sp))];
+%         end
+%         upDATA = cat(1,upDATA,[updata_{:}]');
+%         DATA=cat(1,DATA,swcData);
+%     end
+%     %%
+%     pixsDATA = um2pix(params,DATA(:,3:5)/1000);
+%     pixsupdata = um2pix(params,upDATA(:,3:5)/1000);
+%     pixs = pixsupdata;
+%     %     pixs = pixsDATA;
+%     % pixs(pixs(:,2)<3000,:)=[];
+%     %
+%     [idxknn,dknn]=knnsearch(subs,pixs,'K',1);
+%     validC = unique(Comps(idxknn(dknn<15)));
+%     %%
+%     if opt.viz % visualize clusters
+%         %%
+%         figure(22),
+%         cla
+%         plot3(pixs(:,1),pixs(:,2),pixs(:,3),'.k','MarkerSize',1)
+%         hold on
+%         axis equal tight
+%         set(gca,'Ydir','reverse')
+%         iter = 0;
+%         for mC=ib(ia>100)%(1:100)%validC%1:size(Y,2)%ib(2:500)%
+%             % for each cluster run reconstruction
+%             if Y(mC)>opt.sizethreshold & ismember(mC,validC) %& ~(mC==ib(1))
+%                 %             if Y(mC)>opt.sizethreshold & ismember(mC,validC)
+%                 iter = iter+1;
+%                 if ~rem(iter,round(length(validC)/100))
+%                     iter
+%                 end
+%                 subidx = find(Comps==mC);
+%                 plot3(subs(subidx,1),subs(subidx,2),subs(subidx,3),'.')
+%             end
+%             drawnow
+%         end
+%     end
+% else
+%     validC = 1:size(Y,2);
+% end
+% %%
+% if 0
+%     %%
+%     figure(90),
+%     plot3(subs(:,1),subs(:,2),subs(:,3),'.k','MarkerSize',.1)
+%     hold on
+%     axis equal tight
+%     set(gca,'Ydir','reverse')
+%     %%
+%     figure(21),
+%     cla
+%     plot3(pixs(:,1),pixs(:,2),pixs(:,3),'.k','MarkerSize',.1)
+%     hold on
+%     axis equal tight
+%     set(gca,'Ydir','reverse')
+% end
+% %%
+% if 0
+%     if 0
+%         reconComp(opt,validC,Y,A_,Comps,subs,params)
+%     else
+%         Gin = graph(max(A,A'));
+%         workflow1(Gin,subs,opt)
+%     end
+% else
+%     tstart = tic;
+%     affinityBuilder(opt,validC,Y,A_,Comps,subs)
+%     sprintf('FINISHED IN: %d', round(toc(tstart)))
+% end
+% %%
+% % reconComptest(opt,validC,Y,A_,Comps,subs,params)
 
 end

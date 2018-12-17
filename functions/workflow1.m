@@ -159,11 +159,20 @@ parfor mC=validC
     swcData(1,7) = -1;
     offset = min(swcData(:,3:5),[],1);
     swcData(:,3:5) = swcData(:,3:5)-ones(size(swcData,1),1)*offset;
+    % check quadrant
+    quadid = checkQuant(opt.params.outsiz,median([outtree.X,outtree.Y,outtree.Z]));
+    quadid = 0;
+      % If true, will create 8 folders, one for each quadrant
     %%
     %% WRITE components
     if opt.writefull
         %%
-        swcoutfolder = fullfile(opt.outfolder,'full');
+        if quadid
+            swcoutfolder = fullfile(opt.outfolder,'full',num2str(quadid));
+        else
+            swcoutfolder = fullfile(opt.outfolder,'full');
+        end
+        
         if 1
             [aa,bb,cc] = fileparts(opt.inputh5);
             bb_ = strsplit(bb,'_');
@@ -237,7 +246,13 @@ parfor mC=validC
                 else
                     pre = '';
                 end
-                swcoutfolder = fullfile(opt.outfolder,'frags');
+                
+                if quadid
+                    swcoutfolder = fullfile(opt.outfolder,'frags',num2str(quadid));
+                else
+                    swcoutfolder = fullfile(opt.outfolder,'frags');
+                end
+                
                 swcoutname = sprintf('auto%s',pre);
                 %swcoutname = 'myskel';
                 fragname = sprintf('%s_cc-%04d_branch-%04d.swc',swcoutname,mC,ii);
