@@ -16,16 +16,16 @@ function [outputArgs] = buildBrain_workflow1(configfile)
 
 % $Author: base $	$Date: 2016/05/17 17:19:01 $	$Revision: 0.1 $
 % Copyright: HHMI 2016
-if nargin<1
-    configfile = './config_files/config_buildBrain_20180801_prob0_repeat.cfg';
-%     configfile = './config_files/config_buildBrain_20180702_prob0_100.cfg';
-%        configfile = './config_files/config_buildBrain_20181001_prob0.cfg';
-    %     configfile = './config_files/config_buildBrain_20180309_prob1.cfg';
-    %     configfile = './config_files/config_buildBrain_20170911_prob0.cfg';
-    %     configfile = './config_files/config_buildBrain_20150619_octant12_prob0.cfg';
-end
-addpath(genpath('./common'))
-addpath(genpath('./functions'))
+% if nargin<1
+%     configfile = './config_files/config_buildBrain_20180801_prob0_repeat.cfg';
+% %     configfile = './config_files/config_buildBrain_20180702_prob0_100.cfg';
+% %        configfile = './config_files/config_buildBrain_20181001_prob0.cfg';
+%     %     configfile = './config_files/config_buildBrain_20180309_prob1.cfg';
+%     %     configfile = './config_files/config_buildBrain_20170911_prob0.cfg';
+%     %     configfile = './config_files/config_buildBrain_20150619_octant12_prob0.cfg';
+% end
+% addpath(genpath('./common'))
+% addpath(genpath('./functions'))
 opt = configparser(configfile);
 if ~isfield(opt,'sampling')
     opt.sampling = 'uni';
