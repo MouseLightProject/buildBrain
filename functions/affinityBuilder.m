@@ -50,7 +50,7 @@ tag = opt.tag;
 %% prune graph
 tr=tic
 if opt.prune == 1
-    sizeThr = 20;
+    sizeThr = 50;
     
     [Gpruned,subspruned] = pruneGraph(Ain,subsin,sizeThr,opt);
     save(fullfile(tempfold,'Gpruned'),'Gpruned','subspruned')

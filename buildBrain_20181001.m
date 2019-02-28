@@ -1,4 +1,4 @@
-function [outputArgs] = buildBrain(configfile)
+function [outputArgs] = buildBrain_20181001(configfile)
 %BUILDBRAIN Aggregrates skeletonization results and build connectivity
 %graph of the brain
 %
@@ -17,9 +17,8 @@ function [outputArgs] = buildBrain(configfile)
 % $Author: base $	$Date: 2016/05/17 17:19:01 $	$Revision: 0.1 $
 % Copyright: HHMI 2016
 if nargin<1
-    configfile = './config_files/config_buildBrain_20180801_prob0_repeat.cfg';
 %     configfile = './config_files/config_buildBrain_20180702_prob0_100.cfg';
-%        configfile = './config_files/config_buildBrain_20181001_prob0.cfg';
+        configfile = './config_files/config_buildBrain_20181001_prob0.cfg';
     %     configfile = './config_files/config_buildBrain_20180309_prob1.cfg';
     %     configfile = './config_files/config_buildBrain_20170911_prob0.cfg';
     %     configfile = './config_files/config_buildBrain_20150619_octant12_prob0.cfg';
@@ -33,8 +32,8 @@ end
 myh5 = opt.inputh5;
 myh5prob = opt.h5prob;
 [~,name] = fileparts(myh5);
-%h5infofile = fullfile('./h5infos',['h5inf_',name,'.mat']);
-%mkdir(fileparts(h5infofile))
+h5infofile = fullfile('./h5infos',['h5inf_',name,'.mat']);
+mkdir(fileparts(h5infofile))
 
 [brainSize,RR,chunk_dims,rank] = h5parser(myh5,myh5prob);
 %%
@@ -54,14 +53,8 @@ params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3; % in um
 opt.params = params;
 %%
 % create output folders
-full_folder_path = fullfile(opt.outfolder,'full') ;
-if ~exist(full_folder_path, 'file') ,    
-    mkdir(full_folder_path) ;
-end
-frags_folder_path = fullfile(opt.outfolder,'frags') ;
-if ~exist(frags_folder_path, 'file') ,    
-    mkdir(frags_folder_path) ;
-end
+mkdir(fullfile(opt.outfolder,'full'))
+mkdir(fullfile(opt.outfolder,'frags'))
 %%
 [subs,edges,A,weights] = skel2graph(opt);
 subs_ori = subs;
@@ -73,6 +66,67 @@ subs = subs_ori;
 edges = edges_ori;
 weights = weights_ori;
 A = A_ori;
+%% check if ROI exist
+umROIs =[
+[[74505.0, 14761.1, 31109.0] [75869.2, 15799.4, 32717.0]]
+[[75766.8, 13685.6, 36329.9] [77657.1, 15957.7, 37616.3]]
+];
+
+if isempty(umROIs)
+    %%
+    Gin = graph(max(A,A'));
+    workflow1(Gin,subs,opt)
+else
+    %%
+    opt_rois = opt;
+    opt_rois.outfolder = fullfile(opt_rois.outfolder,'ROIs');
+    % create output folders
+    mkdir(fullfile(opt_rois.outfolder,'full'))
+    mkdir(fullfile(opt_rois.outfolder,'frags'))
+    
+    pixROIs = um2pix(params,reshape(umROIs',3,[])');
+    pixROIs = reshape(pixROIs',6,[])';
+    
+    insubs = getIndsinROI(subs,pixROIs);
+    A_rois = A(insubs,:);A_rois = A_rois(:,insubs);
+    subs_rois = subs(insubs,:);
+    
+    A_rois_complement = A(~insubs,:);
+    A_rois_complement = A_rois_complement(:,~insubs);
+    subs_rois_complement = subs(~insubs,:);
+
+    %%
+    opt_rois.writefull = 0;
+    opt_rois.writefrag = 1;
+    Gin_rois = graph(max(A_rois,A_rois'));
+    workflow1(Gin_rois,subs_rois,opt_rois)
+    %%
+    opt_rois.writefull = 1;
+    opt_rois.writefrag = 0;
+    Gin_rois_complement = graph(max(A_rois_complement,A_rois_complement'));
+    workflow1(Gin_rois_complement,subs_rois_complement,opt_rois)
+    %%
+    
+    
+    
+end
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %%
 maskids = []
 % maskids = [56 672 1022 1031]; %ACB/Caudoputamen/Globus pallidus, external segment/Globus pallidus, internal segment
