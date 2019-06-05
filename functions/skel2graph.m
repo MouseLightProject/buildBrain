@@ -1,6 +1,6 @@
 function [subs,edges,A,weights_] = skel2graph(opt)
 
-mydir = dir([opt.skelfolder,'*.txt']);
+mydir = dir(fullfile(opt.skelfolder,'*.txt'));
 % check the format for a non zero file
 mysiz = [mydir.bytes];
 fid = fopen(fullfile(opt.skelfolder,mydir(find(mysiz>0,1)).name));
