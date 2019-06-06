@@ -1,15 +1,11 @@
-function workflow1(G,subs,opt)
+function workflow1_full_trees_only_as_mats(G, subs, options)
     % Break out the options structure
-    params = opt.params ;
-    output_folder_path = opt.outfolder ;
-    size_threshold = opt.sizethreshold ;
-    length_threshold = opt.lengthThr ;
-    do_visualize = opt.viz ;
-    
-    % Fill out opt if needed
-    if ~isfield(opt,'medianFiltSize') ,
-        opt.medianFiltSize = 10 ;
-    end
+    params = options.params ;
+    output_folder_path = options.outfolder ;
+    size_threshold = options.sizethreshold ;
+    length_threshold = options.lengthThr ;
+    do_visualize = options.viz ;
+    maximum_core_count_desired = options.maximum_core_count_desired ;
     
     % "components" are sometimes called "connected components"
     %node_count = height(G.Nodes) ;
@@ -28,8 +24,8 @@ function workflow1(G,subs,opt)
     % debug_level = 0;
     % directed = 0;
     %W = [];
-    raw_color_from_component_id = jet(component_count);
-    color_from_component_id = raw_color_from_component_id(randperm(component_count),:);
+    %raw_color_from_component_id = jet(component_count);
+    %color_from_component_id = raw_color_from_component_id(randperm(component_count),:);
     SX = params.sx;
     SY = params.sy;
     SZ = params.sz;
@@ -39,7 +35,6 @@ function workflow1(G,subs,opt)
     %Eout = [];
     %iter = 0;
     %%
-    maximum_core_count_desired = 20 ;
     poolobj = gcp('nocreate');  % If no pool, do not create new one.
     if isempty(poolobj) ,
         parpool([1 maximum_core_count_desired]) ;
@@ -47,38 +42,34 @@ function workflow1(G,subs,opt)
     poolobj = gcp('nocreate');  % If no pool, do not create new one.
     core_count = poolobj.NumWorkers ;
     fprintf('Using %d cores.\n', core_count) ;
-    do_skip = false(1,component_count) ;
-    do_skip(size_from_component_id<=size_threshold) = true ;
-    %%
-    full_trees_output_folder_path = fullfile(output_folder_path, 'full') ;
-    fragment_output_folder_path =  fullfile(output_folder_path, 'frags') ;
-    if ~exist(full_trees_output_folder_path, 'dir') ,
-        mkdir(full_trees_output_folder_path) ;
+    
+    % Create the output folder if it doesn't exist
+    full_trees_as_mats_output_folder_path = fullfile(output_folder_path, 'full-as-mats') ;
+    if ~exist(full_trees_as_mats_output_folder_path, 'dir') ,
+        mkdir(full_trees_as_mats_output_folder_path) ;
     end
-    if ~exist(fragment_output_folder_path, 'dir') ,
-        mkdir(fragment_output_folder_path) ;
-    end
-    extant_full_tree_file_names = simple_dir(full_trees_output_folder_path) ;
+
+    % Figure out which components we can skip
+    is_too_small = (size_from_component_id<=size_threshold) ;  % we'll skip these    
+    is_already_done = false(1,component_count) ;        
+    extant_full_tree_file_names = simple_dir(full_trees_as_mats_output_folder_path) ;    
     is_initial_pass = isempty(extant_full_tree_file_names) ;
-    %acc=0;
     if ~is_initial_pass ,
-        parfor component_id = 1:component_count ,   %1:size(Y,2)%ib(2:500)%
-            if size_from_component_id(component_id) > size_threshold ,  %& ismember(component_id,validC) %& ~any(component_id==skipThese)
-                tree_swc_file_name = sprintf('auto_cc-%04d.swc',component_id) ;
-                tree_swc_file_path = fullfile(full_trees_output_folder_path,tree_swc_file_name);
-                if exist(tree_swc_file_path,'file')
-                    do_skip(component_id) = true ;
-                    %acc=acc+1;
+        parfor component_id = 1:component_count ,
+            if ~is_too_small(component_id) , 
+                tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
+                tree_mat_file_path = fullfile(full_trees_as_mats_output_folder_path, tree_mat_file_name);
+                if exist(tree_mat_file_path, 'file') ,
+                    is_already_done(component_id) = true ;
                 end
-            else
-                do_skip(component_id) = true ;
             end
         end
     end
+    do_skip = is_too_small | is_already_done ;
+    do_process = ~do_skip ;
 
-    %% 
     %try parfor_progress(0);catch;end    
-    component_ids_to_process = find(~do_skip) ;
+    component_ids_to_process = find(do_process) ;
     components_to_process = components(component_ids_to_process) ;
     components_to_process_count = length(component_ids_to_process) ;
     did_discard = false(components_to_process_count, 1) ;
@@ -137,38 +128,38 @@ function workflow1(G,subs,opt)
             continue
         end
         %%
-        inupdate = smoothtree(inupdate,opt);
+        inupdate_smoothed = smoothtree(inupdate,options);
         %%
-        % [L,list] = getBranches(inupdate.dA);
+        % [L,list] = getBranches(inupdate_smoothed.dA);
     %     if 0
-    %         outtree = inupdate;
+    %         outtree = inupdate_smoothed;
     %     else
-            % outtree_old = downSampleTree(inupdate,opt);
-        outtree = sampleTree(inupdate, opt) ;
+            % outtree_old = downSampleTree(inupdate_smoothed,opt);
+        outtree = sampleTree(inupdate_smoothed, options) ;
     %     end
         if do_visualize
             cla
-            gplot3(inupdate.dA,[inupdate.X,inupdate.Y,inupdate.Z],'LineWidth',3);
+            gplot3(inupdate_smoothed.dA,[inupdate_smoothed.X,inupdate_smoothed.Y,inupdate_smoothed.Z],'LineWidth',3);
             hold on
             gplot3(outtree.dA,[outtree.X,outtree.Y,outtree.Z],'--','LineWidth',3);
             drawnow
         end
-        
-        % WRITE full tree
-        if opt.writefull ,
-            write_full_tree_as_swc(full_trees_output_folder_path, component_id, outtree, params, color_from_component_id) ;
-        end
-        
-        % WRITE fragments
-        if opt.writefrag ,
-            write_fragments_as_swcs(fragment_output_folder_path, component_id, outtree, opt) ;
-        end
+                
+        % Write full tree as a .mat file
+        tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
+        tree_mat_file_path = fullfile(full_trees_as_mats_output_folder_path, tree_mat_file_name);
+        save_tree_as_mat(tree_mat_file_path, component_id, outtree) ;
         
         % Update the progress bar
         parfor_progress() ;
     end
     parfor_progress(0) ;
     discarded_components_count = sum(did_discard) ;
-    fprintf('Of %d processed components, %d were discarded.\n', components_to_process_count, discarded_components_count) ;
+    fprintf('Of %d processed components, %d were discarded b/c they were too small after pruning.\n', ...
+            components_to_process_count, ...
+            discarded_components_count) ;
+    if components_to_process_count == discarded_components_count ,
+        fprintf('This means you don''t need to run this function again --- all trees have been generated.\n')
+    end
     toc(runtic) ;
 end

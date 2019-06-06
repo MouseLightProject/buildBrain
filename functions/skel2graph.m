@@ -35,7 +35,7 @@ end
 edges = [pairs{:}]';clear pairs;
 
 %%
-clc
+%clc
 clear subs
 [keepthese,ia,ic] = unique(edges(:,[1 2]));
 [subs(:,1),subs(:,2),subs(:,3)] = ind2sub(opt.params.outsiz([1 2 3]),keepthese);
