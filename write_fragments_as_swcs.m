@@ -1,8 +1,8 @@
-function write_fragments_as_swcs(fragment_output_folder_path, component_id, outtree, params, minimum_centerpoint_count_per_fragment)
-    XYZ = [outtree.X,outtree.Y,outtree.Z]-1 ; % -1 one is heuristic/bug
-    R = outtree.R ;
-    D = outtree.D ;
-    [L,~] = getBranches(outtree.dA) ;
+function write_fragments_as_swcs(fragment_output_folder_path, component_id, full_tree, minimum_centerpoint_count_per_fragment)
+    XYZ = [full_tree.X,full_tree.Y,full_tree.Z] ;  % um
+    R = full_tree.R ;
+    D = full_tree.D ;
+    [L,~] = getBranches(full_tree.dA) ;
     fragment_count = length(L) ;
     
     % Generate colormap
@@ -27,28 +27,25 @@ function write_fragments_as_swcs(fragment_output_folder_path, component_id, outt
         end
         
         % Get the centerpoints for this fragment
-        XYZout = XYZ(out,:);
-        Rout = R(out);
-        Dout = D(out);
+        XYZ_this_fragment = XYZ(out,:);
+        R_this_fragment = R(out);
+        D_this_fragment = D(out);
 
         % Don't write an swc for fragments with too few centerpoints
-        centerpoint_count = size(XYZout,1) ;
+        centerpoint_count = size(XYZ_this_fragment,1) ;
         if centerpoint_count < minimum_centerpoint_count_per_fragment ,
             continue
         end
         
-        % transform location to um from voxels
-        XYZout_um = pix2um(params, XYZout) ;  % center anisotropy to compansate imresize
-        
         % Center centerpoint coordinates on the center of mass
-        offset = mean(XYZout_um, 1) ;        
-        XYZout_um_centered = bsxfun(@minus, XYZout_um, offset) ;
+        offset = mean(XYZ_this_fragment, 1) ;        
+        XYZ_this_fragment_centered = bsxfun(@minus, XYZ_this_fragment, offset) ;
 
         % Create .swc data matrix
         centerpoint_ids = (1:centerpoint_count)' ;
         parent_ids_except_first = (1:(centerpoint_count-1))' ;  % parent of centerpoint 2 is 1, parent of centerpoint 3 is 2, etc.
         parent_ids = vertcat(-1, parent_ids_except_first) ;  % .swc says the root should have parent == -1        
-        swcData = horzcat(centerpoint_ids, Dout, XYZout_um_centered, Rout, parent_ids) ;
+        swcData = horzcat(centerpoint_ids, D_this_fragment, XYZ_this_fragment_centered, R_this_fragment, parent_ids) ;
         
         % Write swc
         fid = fopen(fragment_swc_file_path,'w');

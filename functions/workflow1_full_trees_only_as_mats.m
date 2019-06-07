@@ -6,6 +6,13 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     length_threshold = options.lengthThr ;
     do_visualize = options.viz ;
     maximum_core_count_desired = options.maximum_core_count_desired ;
+
+    % Break out the 'params'
+    origin_in_nm = [params.ox params.oy params.oz] ;  % nm
+    top_level_spacing = [params.sx params.sy params.sz] ;
+    levels_below_top_level = params.level ;
+    spacing_in_nm = top_level_spacing / 2^levels_below_top_level ;
+    voxres = params.voxres ;
     
     % "components" are sometimes called "connected components"
     %node_count = height(G.Nodes) ;
@@ -26,11 +33,11 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     %W = [];
     %raw_color_from_component_id = jet(component_count);
     %color_from_component_id = raw_color_from_component_id(randperm(component_count),:);
-    SX = params.sx;
-    SY = params.sy;
-    SZ = params.sz;
-    voxres = [SX SY SZ]/2^(params.level)/1e3; % in um
-    params.voxres = voxres;
+%     SX = params.sx;
+%     SY = params.sy;
+%     SZ = params.sz;
+%     voxres = [SX SY SZ]/2^(params.level)/1e3; % in um
+%     params.voxres = voxres;
     runtic = tic;
     %Eout = [];
     %iter = 0;
@@ -44,21 +51,20 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     fprintf('Using %d cores.\n', core_count) ;
     
     % Create the output folder if it doesn't exist
-    full_trees_as_mats_output_folder_path = fullfile(output_folder_path, 'full-as-mats') ;
-    if ~exist(full_trees_as_mats_output_folder_path, 'dir') ,
-        mkdir(full_trees_as_mats_output_folder_path) ;
+    if ~exist(output_folder_path, 'dir') ,
+        mkdir(output_folder_path) ;
     end
 
     % Figure out which components we can skip
     is_too_small = (size_from_component_id<=size_threshold) ;  % we'll skip these    
     is_already_done = false(1,component_count) ;        
-    extant_full_tree_file_names = simple_dir(full_trees_as_mats_output_folder_path) ;    
+    extant_full_tree_file_names = simple_dir(output_folder_path) ;    
     is_initial_pass = isempty(extant_full_tree_file_names) ;
     if ~is_initial_pass ,
         parfor component_id = 1:component_count ,
             if ~is_too_small(component_id) , 
                 tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-                tree_mat_file_path = fullfile(full_trees_as_mats_output_folder_path, tree_mat_file_name);
+                tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
                 if exist(tree_mat_file_path, 'file') ,
                     is_already_done(component_id) = true ;
                 end
@@ -79,7 +85,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         % for each cluster run reconstruction
         %%
         component_id = component_ids_to_process(i) ;
-        fprintf('Processing component with id %d...\n', component_id) ;
+        %fprintf('Processing component with id %d...\n', component_id) ;
         %component_id = component_id ;  % iter+1;
         component = components_to_process{i} ;  % find(Comps==component_id);
         subs_for_component = subs(component,:) ;  %#ok<PFBNS> % get back to matlab image coordinates
@@ -123,7 +129,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         end
         %%
         if length(inupdate.dA)<size_threshold
-            fprintf('Component with id %d fails to meet the size threshold after pruning, so discarding.\n', component_id) ;
+            %fprintf('Component with id %d fails to meet the size threshold after pruning, so discarding.\n', component_id) ;
             did_discard(i) = true ;
             continue
         end
@@ -135,19 +141,24 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     %         outtree = inupdate_smoothed;
     %     else
             % outtree_old = downSampleTree(inupdate_smoothed,opt);
-        outtree = sampleTree(inupdate_smoothed, options) ;
-    %     end
+        outtree_in_voxels = sampleTree(inupdate_smoothed, options) ;
+        outtree_in_voxels.units = 'voxels' ;
         if do_visualize
             cla
             gplot3(inupdate_smoothed.dA,[inupdate_smoothed.X,inupdate_smoothed.Y,inupdate_smoothed.Z],'LineWidth',3);
             hold on
-            gplot3(outtree.dA,[outtree.X,outtree.Y,outtree.Z],'--','LineWidth',3);
+            gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
             drawnow
-        end
+        end        
+        
+        % Convert centerpoint from voxel coords to um
+        outtree = convert_centerpoint_units_to_um(outtree_in_voxels, origin_in_nm, spacing_in_nm) ;
+        
+    %     end
                 
         % Write full tree as a .mat file
         tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-        tree_mat_file_path = fullfile(full_trees_as_mats_output_folder_path, tree_mat_file_name);
+        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
         save_tree_as_mat(tree_mat_file_path, component_id, outtree) ;
         
         % Update the progress bar

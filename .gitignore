@@ -1,4 +1,5 @@
 *.mat
 *.tif
-/temp/
+temp
 *.m~
+parfor_progress.txt

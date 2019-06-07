@@ -1,4 +1,4 @@
-function workflow1_frags_as_swcs(input_folder_path, output_folder_path, params, maximum_core_count_desired, minimum_centerpoint_count_per_fragment)
+function workflow1_frags_as_swcs(input_folder_path, output_folder_path, maximum_core_count_desired, minimum_centerpoint_count_per_fragment)
     % Break out the options structure
     %params = options.params ;
     %output_folder_path = options.outfolder ;
@@ -56,7 +56,7 @@ function workflow1_frags_as_swcs(input_folder_path, output_folder_path, params, 
         full_tree_file_name = full_tree_file_names{full_tree_index} ;
         full_tree_mat_file_path = fullfile(input_folder_path, full_tree_file_name) ;
         [component_id, outtree] = load_full_tree_from_mat(full_tree_mat_file_path) ;
-        write_fragments_as_swcs(output_folder_path, component_id, outtree, params, minimum_centerpoint_count_per_fragment) ;
+        write_fragments_as_swcs(output_folder_path, component_id, outtree, minimum_centerpoint_count_per_fragment) ;
         
         % Update the progress bar
         parfor_progress() ;
