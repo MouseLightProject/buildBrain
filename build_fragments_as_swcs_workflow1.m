@@ -1,18 +1,18 @@
 function build_fragments_as_swcs_workflow1(configuration_file_path)
-
     options = configparser(configuration_file_path);
     % if ~isfield(options,'sampling')
     %     options.sampling = 'uni';
     % end
-    myh5 = options.inputh5 ;
-    myh5prob = options.h5prob ;
+    whole_brain_h5_p_map_file_path = options.whole_brain_h5_p_map_file_path ;
+    whole_brain_h5_p_map_dataset_path = options.whole_brain_h5_p_map_dataset_path ;
+    whole_brain_h5_p_map_properties_group_path = options.whole_brain_h5_p_map_properties_group_path ;
+    
+    brain_size = h5parser(whole_brain_h5_p_map_file_path, whole_brain_h5_p_map_dataset_path) ;
 
-    [brainSize,~,~,~] = h5parser(myh5,myh5prob);
-
-    origin = h5read(options.inputh5,[options.h5prob,'_props/origin']);
-    spacing = h5read(options.inputh5,[options.h5prob,'_props/spacing']);
-    level = h5read(options.inputh5,[options.h5prob,'_props/level']);
-    params.outsiz = brainSize ;
+    origin = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path, '/origin']) ;
+    spacing = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path, '/spacing']) ;
+    level = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path, '/level']) ;
+    params.outsiz = brain_size ;
     params.ox = origin(1) ;
     params.oy = origin(2) ;
     params.oz = origin(3) ;
@@ -21,11 +21,15 @@ function build_fragments_as_swcs_workflow1(configuration_file_path)
     params.sz = spacing(3) ;
     params.level = level ;
 
-    params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3; % in um
+    params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3 ;  % in um
     %options.params = params;
 
     %[subs,~,A,~] = skel2graph(options) ;
 
     %Gin = graph(max(A,A')) ;
-    workflow1_frags_as_swcs(options.outfolder, params, options.maximum_core_count_desired) ;
+    workflow1_frags_as_swcs(options.input_folder_path, ...
+                            options.output_folder_path, ...
+                            params, ...
+                            options.maximum_core_count_desired, ...
+                            options.minimum_centerpoint_count_per_fragment) ;
 end

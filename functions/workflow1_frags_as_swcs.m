@@ -1,4 +1,4 @@
-function workflow1_frags_as_swcs(output_folder_path, params, maximum_core_count_desired)
+function workflow1_frags_as_swcs(input_folder_path, output_folder_path, params, maximum_core_count_desired, minimum_centerpoint_count_per_fragment)
     % Break out the options structure
     %params = options.params ;
     %output_folder_path = options.outfolder ;
@@ -42,21 +42,21 @@ function workflow1_frags_as_swcs(output_folder_path, params, maximum_core_count_
     fprintf('Using %d cores.\n', core_count) ;
     
     %%
-    full_trees_folder_path = fullfile(output_folder_path, 'full-as-mats') ;
-    fragment_output_folder_path =  fullfile(output_folder_path, 'frags') ;
-    if ~exist(fragment_output_folder_path, 'dir') ,
-        mkdir(fragment_output_folder_path) ;
+    %full_trees_folder_path = fullfile(output_folder_path, 'full-as-mats') ;
+    %fragment_output_folder_path =  fullfile(output_folder_path, 'frags') ;
+    if ~exist(output_folder_path, 'dir') ,
+        mkdir(output_folder_path) ;
     end
-    full_tree_file_names = simple_dir(fullfile(full_trees_folder_path, '*.mat')) ;
+    full_tree_file_names = simple_dir(fullfile(input_folder_path, '*.mat')) ;
     full_tress_to_process_count = length(full_tree_file_names) ;
     tic_id = tic() ;
     fprintf('Starting the big parfor loop, going to process %d full trees...\n', full_tress_to_process_count) ;
     parfor_progress(full_tress_to_process_count) ;
     parfor full_tree_index = 1 : full_tress_to_process_count ,
         full_tree_file_name = full_tree_file_names{full_tree_index} ;
-        full_tree_mat_file_path = fullfile(full_trees_folder_path, full_tree_file_name) ;
+        full_tree_mat_file_path = fullfile(input_folder_path, full_tree_file_name) ;
         [component_id, outtree] = load_full_tree_from_mat(full_tree_mat_file_path) ;
-        write_fragments_as_swcs(fragment_output_folder_path, component_id, outtree, params) ;
+        write_fragments_as_swcs(output_folder_path, component_id, outtree, params, minimum_centerpoint_count_per_fragment) ;
         
         % Update the progress bar
         parfor_progress() ;
