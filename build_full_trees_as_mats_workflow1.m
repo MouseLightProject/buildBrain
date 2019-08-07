@@ -24,8 +24,14 @@ function build_full_trees_as_mats_workflow1(configuration_file_path)
     params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3 ; % in um
     options.params = params ;
 
-    [subs,~,A,~] = skel2graph(options) ;
-
-    Gin = graph(max(A,A')) ;
-    workflow1_full_trees_only_as_mats(Gin,subs,options) ;
+    output_folder_path = options.outfolder ;
+    graph_file_path = fullfile(output_folder_path, 'graph.mat') ;
+    if exist(graph_file_path, 'file') ,
+        load(graph_file_path, 'subs', 'Gin') ;
+    else        
+        [subs,~,A,~] = skel2graph(options) ;
+        Gin = graph(max(A,A')) ;
+        save(graph_file_path, 'subs', 'Gin', '-v7.3') ;
+    end
+    workflow1_full_trees_only_as_mats(Gin, subs, options) ;
 end

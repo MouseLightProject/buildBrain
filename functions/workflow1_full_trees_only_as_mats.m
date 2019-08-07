@@ -16,14 +16,16 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     
     % "components" are sometimes called "connected components"
     %node_count = height(G.Nodes) ;
-    components = conncomp(G,'OutputForm','cell') ;  % cell array, each element a 1d array of node ids in G
+    %[components, size_from_component_id] = conncomp(G,'OutputForm','cell') ;  % cell array, each element a 1d array of node ids in G
+    maximum_component_size = 10e6 ;
+    [components, size_from_component_id] = connected_components_with_fractionation(G, maximum_component_size) ;    
     component_count = length(components) ;
-    A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
-    A_lower = tril(A,-1) ;  % lower-triangular part of A
+    %A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
+    %A_lower = tril(A,-1) ;  % lower-triangular part of A
     %S = length(CompsC);
-    size_from_component_id = cellfun(@length, components) ;
-      % the "component id" of a component is the index of that component in
-      % components
+    % size_from_component_id = cellfun(@length, components) ;
+    %   % the "component id" of a component is the index of that component in
+    %   % components
     %component_id_from_component_id = 1:component_count ;
     %[ia,ib]=sort(Y,'descend');
     % algorithmkeys = {'spb','dij','bel','spa'};
@@ -76,27 +78,31 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
 
     %try parfor_progress(0);catch;end    
     component_ids_to_process = find(do_process) ;
-    components_to_process = components(component_ids_to_process) ;
-    components_to_process_count = length(component_ids_to_process) ;
+    [~,js] = sort(size_from_component_id(component_ids_to_process)) ;
+    component_ids_to_process_sorted_by_size = fliplr(component_ids_to_process(js)) ;  % want biggest first
+    components_to_process = components(component_ids_to_process_sorted_by_size) ;
+    components_to_process_count = length(component_ids_to_process_sorted_by_size) ;
     did_discard = false(components_to_process_count, 1) ;
     fprintf('Starting the big parfor loop, going to process %d components...\n', components_to_process_count) ;
     parfor_progress(components_to_process_count) ;
-    parfor i = 1 : components_to_process_count ,
+    for i = 1 : components_to_process_count ,
         % for each cluster run reconstruction
         %%
-        component_id = component_ids_to_process(i) ;
-        %fprintf('Processing component with id %d...\n', component_id) ;
+        component_id = component_ids_to_process_sorted_by_size(i) ;
+        fprintf('Processing component with id %d, size is %d nodes...\n', component_id, size_from_component_id(component_id)) ;
         %component_id = component_id ;  % iter+1;
         component = components_to_process{i} ;  % find(Comps==component_id);
-        subs_for_component = subs(component,:) ;  %#ok<PFBNS> % get back to matlab image coordinates
+        subs_for_component = subs(component,:) ;
         component_size = length(component) ;
         % get lower portion to make it directed
-        A_lower_for_component = A_lower(component,component) ;  %#ok<PFBNS> % faster
+        %A_lower_for_component = A_lower(component,component) ;  %#ok<PFBNS> % faster
         %Gsub = G.subgraph(subidx);
+        G_for_component = G.subgraph(component) ;
+        A_for_component = G_for_component.adjacency ;
 
-        leafs = find(sum(A_lower_for_component,2)==0);%find(sum(max(Asub,Asub'))==1,1);
+        a_leaf_node_id = find(sum(A_for_component)==1, 1) ;
 
-        [eout] = graphfuncs.buildgraph(A_lower_for_component,leafs(1));
+        [eout] = graphfuncs.buildgraph(A_for_component, a_leaf_node_id) ;
         inupdate.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
         inupdate.D = ones(component_size,1);
         inupdate.R = ones(component_size,1);
