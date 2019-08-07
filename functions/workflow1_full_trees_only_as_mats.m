@@ -17,9 +17,16 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     % "components" are sometimes called "connected components"
     %node_count = height(G.Nodes) ;
     %[components, size_from_component_id] = conncomp(G,'OutputForm','cell') ;  % cell array, each element a 1d array of node ids in G
-    maximum_component_size = 10e6 ;
-    [components, size_from_component_id] = connected_components_with_fractionation(G, maximum_component_size) ;    
-    component_count = length(components) ;
+    fractionated_components_file_path = fullfile(output_folder_path, 'fractionated_components.mat') ;
+    if exist(fractionated_components_file_path, 'file') ,
+        load(fractionated_components_file_path, 'components', 'size_from_component_id', 'maximum_component_size') ;  %#ok<NASGU>
+    else
+        maximum_component_size = 10e6 ;
+        [component_from_component_id, size_from_component_id] = connected_components_with_fractionation(G, maximum_component_size) ;
+           % note that components are sort by size, largest first
+        save(fractionated_components_file_path, 'components', 'size_from_component_id', 'maximum_component_size', '-v7.3') ;
+    end
+    component_count = length(component_from_component_id) ;
     %A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
     %A_lower = tril(A,-1) ;  % lower-triangular part of A
     %S = length(CompsC);
@@ -57,51 +64,42 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         mkdir(output_folder_path) ;
     end
 
-    % Figure out which components we can skip
-    is_too_small = (size_from_component_id<=size_threshold) ;  % we'll skip these    
-    is_already_done = false(1,component_count) ;        
-    extant_full_tree_file_names = simple_dir(output_folder_path) ;    
-    is_initial_pass = isempty(extant_full_tree_file_names) ;
-    if ~is_initial_pass ,
-        parfor component_id = 1:component_count ,
-            if ~is_too_small(component_id) , 
-                tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-                tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
-                if exist(tree_mat_file_path, 'file') ,
-                    is_already_done(component_id) = true ;
-                end
-            end
-        end
-    end
-    do_skip = is_too_small | is_already_done ;
-    do_process = ~do_skip ;
-
-    %try parfor_progress(0);catch;end    
-    component_ids_to_process = find(do_process) ;
-    [~,js] = sort(size_from_component_id(component_ids_to_process)) ;
-    component_ids_to_process_sorted_by_size = fliplr(component_ids_to_process(js)) ;  % want biggest first
-    components_to_process = components(component_ids_to_process_sorted_by_size) ;
-    components_to_process_count = length(component_ids_to_process_sorted_by_size) ;
-    did_discard = false(components_to_process_count, 1) ;
-    fprintf('Starting the big parfor loop, going to process %d components...\n', components_to_process_count) ;
+    % The main loop
+    fprintf('Starting the big parfor loop, going to process %d components...\n', component_count) ;
+    did_discard = false(component_count, 1) ;
     parfor_progress(components_to_process_count) ;
-    for i = 1 : components_to_process_count ,
-        % for each cluster run reconstruction
-        %%
-        component_id = component_ids_to_process_sorted_by_size(i) ;
-        fprintf('Processing component with id %d, size is %d nodes...\n', component_id, size_from_component_id(component_id)) ;
-        %component_id = component_id ;  % iter+1;
-        component = components_to_process{i} ;  % find(Comps==component_id);
+    for component_id = 1 : component_count ,
+        % Extract this component
+        component = component_from_component_id{component_id} ;
+        component_size = size_from_component_id(component_id) ;
+        
+        % Output some info
+        fprintf('Processing component with id %d, size is %d nodes...\n', component_id, component_size) ;
+        
+        % Check if too small, skip iter if so
+        if component_size<=size_threshold ,
+            % Update the progress bar
+            did_discard(component_id) = true ;
+            parfor_progress() ;
+            continue
+        end                   
+        
+        % Check if the file already exists, skip iter if so
+        tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
+        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
+        if exist(tree_mat_file_path, 'file') ,
+            % Update the progress bar
+            parfor_progress() ;
+            continue
+        end
+        
+        % Get the graph for this component
         subs_for_component = subs(component,:) ;
-        component_size = length(component) ;
-        % get lower portion to make it directed
-        %A_lower_for_component = A_lower(component,component) ;  %#ok<PFBNS> % faster
-        %Gsub = G.subgraph(subidx);
         G_for_component = G.subgraph(component) ;
         A_for_component = G_for_component.adjacency ;
 
+        % Do something
         a_leaf_node_id = find(sum(A_for_component)==1, 1) ;
-
         [eout] = graphfuncs.buildgraph(A_for_component, a_leaf_node_id) ;
         inupdate.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
         inupdate.D = ones(component_size,1);
@@ -136,7 +134,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         %%
         if length(inupdate.dA)<size_threshold
             %fprintf('Component with id %d fails to meet the size threshold after pruning, so discarding.\n', component_id) ;
-            did_discard(i) = true ;
+            did_discard(component_id) = true ;
             continue
         end
         %%
@@ -159,12 +157,8 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         
         % Convert centerpoint from voxel coords to um
         outtree = convert_centerpoint_units_to_um(outtree_in_voxels, origin_in_nm, spacing_in_nm) ;
-        
-    %     end
                 
         % Write full tree as a .mat file
-        tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
         save_tree_as_mat(tree_mat_file_path, component_id, outtree) ;
         
         % Update the progress bar
@@ -173,7 +167,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     parfor_progress(0) ;
     discarded_components_count = sum(did_discard) ;
     fprintf('Of %d processed components, %d were discarded b/c they were too small after pruning.\n', ...
-            components_to_process_count, ...
+            component_count, ...
             discarded_components_count) ;
     if components_to_process_count == discarded_components_count ,
         fprintf('This means you don''t need to run this function again --- all trees have been generated.\n')
