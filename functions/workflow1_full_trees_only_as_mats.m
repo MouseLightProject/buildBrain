@@ -64,6 +64,8 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         mkdir(output_folder_path) ;
     end
 
+    % Figure out how many components are 'big', we'll do those one at a
+    % time so as not to run out of memory   
     big_component_threshold = 1e6 ;
     big_component_count = sum(size_from_component_id>=big_component_threshold) ;
         
