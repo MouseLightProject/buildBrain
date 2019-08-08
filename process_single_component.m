@@ -1,4 +1,15 @@
-function process_single_component(component_id, component, G, subs, size_threshold, length_threshold, do_visualize, origin_in_nm, spacing_in_nm, voxres)
+function process_single_component(output_folder_path, ...
+                                  component_id, ...
+                                  component, ...
+                                  G, ...
+                                  subs, ...
+                                  size_threshold, ...
+                                  length_threshold, ...
+                                  do_visualize, ...
+                                  origin_in_nm, ...
+                                  spacing_in_nm, ...
+                                  voxres, ...
+                                  options)
     component_size= length(component) ;
     
     % Output some info
@@ -22,8 +33,8 @@ function process_single_component(component_id, component, G, subs, size_thresho
     A_for_component = G_for_component.adjacency ;
 
     % Do something
-    a_leaf_node_id = find(sum(A_for_component)==1, 1) ;
-    [eout] = graphfuncs.buildgraph(A_for_component, a_leaf_node_id) ;
+    root_node_id = find(sum(A_for_component)==1, 1) ;
+    [eout] = graphfuncs.buildgraph(A_for_component, root_node_id) ;
     inupdate.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
     inupdate.D = ones(component_size,1);
     inupdate.R = ones(component_size,1);
@@ -44,7 +55,8 @@ function process_single_component(component_id, component, G, subs, size_thresho
     % shuffle root to one of the leafs for efficiency and not
     % splitting long stretches into half
     if size(inupdate.dA,1)>1
-        [eoutprun] = graphfuncs.buildgraph(inupdate.dA);
+        inupdate_A = max(inupdate.dA, inupdate.dA') ;  % make into an undirected graph adjacency matrix
+        eoutprun = graphfuncs.buildgraph(inupdate_A, root_node_id) ;
         component_size = max(eoutprun(:));
         inupdate.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else
