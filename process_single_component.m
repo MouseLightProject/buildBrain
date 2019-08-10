@@ -34,56 +34,72 @@ function process_single_component(output_folder_path, ...
 
     % Do something
     root_node_id = find(sum(A_for_component)==1, 1) ;
-    [eout] = graphfuncs.buildgraph(A_for_component, root_node_id) ;
-    inupdate.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
-    inupdate.D = ones(component_size,1);
-    inupdate.R = ones(component_size,1);
-    inupdate.X = subs_for_component(:,1);
-    inupdate.Y = subs_for_component(:,2);
-    inupdate.Z = subs_for_component(:,3);
+    % profile clear
+    % profile -memory on
+    eout = graphfuncs.buildgraph(A_for_component, root_node_id) ;
+    % profile off
+    
+    % Package things up into an "SWC structure".
+    % dA: directed adjacency graph.  A sparse matrix that represents the
+    % directed edges that point from a node to the next node soma-ward (or,
+    % more generally, rootward).
+    % D: node descriptor.  This will become the 2nd column of the SWC, the
+    % "structure identifier".  Used for different things in different
+    % places.
+    % R: The radius as the node, in um.  We basically don't use this, so it's
+    % often just set to all ones for convenience.
+    % X,Y,Z: The coordinates of each node, ideally in um, but sometimes we
+    % have them in voxel indices.
+    swc_struct.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
+    swc_struct.D = ones(component_size,1);
+    swc_struct.R = ones(component_size,1);
+    swc_struct.X = subs_for_component(:,1);
+    swc_struct.Y = subs_for_component(:,2);
+    swc_struct.Z = subs_for_component(:,3);
+    
     %%
-    deleteThese = NaN;
-    while ~isempty(deleteThese) ,
-        [inupdate, deleteThese] = prunTree(inupdate, length_threshold, voxres) ;
+    did_prune_some = true ;  % just to get prunTree() to be called at least once
+    while did_prune_some ,
+        [swc_struct, did_prune_some] = prunTree(swc_struct, length_threshold, voxres) ;
         if do_visualize
             hold on
-            gplot3(inupdate.dA,[inupdate.X,inupdate.Y,inupdate.Z]);
+            gplot3(swc_struct.dA,[swc_struct.X,swc_struct.Y,swc_struct.Z]);
             drawnow
         end
     end
     %%
     % shuffle root to one of the leafs for efficiency and not
     % splitting long stretches into half
-    if size(inupdate.dA,1)>1
-        inupdate_A = max(inupdate.dA, inupdate.dA') ;  % make into an undirected graph adjacency matrix
+    if size(swc_struct.dA,1)>1
+        inupdate_A = max(swc_struct.dA, swc_struct.dA') ;  % make into an undirected graph adjacency matrix
         eoutprun = graphfuncs.buildgraph(inupdate_A, root_node_id) ;
         component_size = max(eoutprun(:));
-        inupdate.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
+        swc_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else
     end
     if do_visualize
         hold on
-        gplot3(inupdate.dA,[inupdate.X,inupdate.Y,inupdate.Z],'LineWidth',3);
+        gplot3(swc_struct.dA,[swc_struct.X,swc_struct.Y,swc_struct.Z],'LineWidth',3);
         drawnow
     end
     %%
-    if length(inupdate.dA)<size_threshold
+    if length(swc_struct.dA)<size_threshold
         %fprintf('Component with id %d fails to meet the size threshold after pruning, so discarding.\n', component_id) ;
         return
     end
     %%
-    inupdate_smoothed = smoothtree(inupdate,options);
+    swc_struct_smoothed = smoothtree(swc_struct,options);
     %%
     % [L,list] = getBranches(inupdate_smoothed.dA);
 %     if 0
 %         outtree = inupdate_smoothed;
 %     else
         % outtree_old = downSampleTree(inupdate_smoothed,opt);
-    outtree_in_voxels = sampleTree(inupdate_smoothed, options) ;
+    outtree_in_voxels = sampleTree(swc_struct_smoothed, options) ;
     outtree_in_voxels.units = 'voxels' ;
     if do_visualize
         cla
-        gplot3(inupdate_smoothed.dA,[inupdate_smoothed.X,inupdate_smoothed.Y,inupdate_smoothed.Z],'LineWidth',3);
+        gplot3(swc_struct_smoothed.dA,[swc_struct_smoothed.X,swc_struct_smoothed.Y,swc_struct_smoothed.Z],'LineWidth',3);
         hold on
         gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
         drawnow

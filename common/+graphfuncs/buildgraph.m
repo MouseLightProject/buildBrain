@@ -15,7 +15,7 @@ function tree_ij_pairs = buildgraph(A, root)
 %     if nargin<2 ,
 %         source = find(sum(Asub)==1, 1) ;
 %     end
-    [~,~,pred] = graphshortestpath(A, root, 'directed', false) ;
+    pred = graphshortestpath_pred_only(A, root, 'directed', false) ;
     tree_ij_pairs = [((1:size(A,1))') (pred(:))] ;  % each row is a (child, parent)
     tree_ij_pairs(tree_ij_pairs(:,2)==0,:) = [];  % delete the row with the root as the child, and node 0 as the parent
 end

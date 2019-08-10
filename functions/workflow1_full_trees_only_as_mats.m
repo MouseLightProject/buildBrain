@@ -21,13 +21,17 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     if exist(fractionated_components_file_path, 'file') ,
         load(fractionated_components_file_path, 'component_from_component_id', 'size_from_component_id', 'maximum_component_size') ;  %#ok<NASGU>
     else
+        %maximum_component_size = inf ;
         maximum_component_size = 10e6 ;
         [component_from_component_id, size_from_component_id] = connected_components_with_fractionation(G, maximum_component_size) ;
            % note that components are sort by size, largest first
         save(fractionated_components_file_path, 'component_from_component_id', 'size_from_component_id', 'maximum_component_size', '-v7.3') ;
     end
     component_count = length(component_from_component_id) ;
-    fprintf('Components are in hand!\n') ;
+    fprintf('Components are in hand!  There are %d of them.\n', component_count) ;
+    if component_count > 0 ,
+        fprintf('The largest component contains %d nodes.\n', size_from_component_id(1)) ;
+    end
     %A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
     %A_lower = tril(A,-1) ;  % lower-triangular part of A
     %S = length(CompsC);
@@ -65,19 +69,29 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         mkdir(output_folder_path) ;
     end
 
-    % Figure out how many components are 'big', we'll do those one at a
+    % Ignore too-small components
+    % Also, figure out how many components are 'big', we'll do those one at a
     % time so as not to run out of memory   
     big_component_threshold = 1e6 ;
-    big_component_count = sum(size_from_component_id>=big_component_threshold) ;
-        
-    % The main loop
-    fprintf('Starting the big parfor loop, going to process %d components...\n', component_count) ;
+    is_too_small = (size_from_component_id<=size_threshold) ;
+    component_id_from_processing_index = find(~is_too_small) ;
+    component_size_from_processing_index = size_from_component_id(component_id_from_processing_index) ;
+    do_process_serially_from_processing_index = (component_size_from_processing_index>=big_component_threshold) ;
+    component_id_from_serial_processing_index = component_id_from_processing_index(do_process_serially_from_processing_index) ;
+    component_id_from_parallel_processing_index = component_id_from_processing_index(~do_process_serially_from_processing_index) ;
+    %component_size_from_serial_processing_index = component_size_from_component_id(component_id_from_serial_processing_index) ;
+    %component_size_from_parallel_processing_index = component_size_from_component_id(component_id_from_parallel_processing_index) ;
+    components_to_process_serially_count = length(component_id_from_serial_processing_index) ;
+    components_to_process_in_parallel_count = length(component_id_from_parallel_processing_index) ;
+
+    fprintf('Starting the serial for loop, going to process %d components...\n', components_to_process_serially_count) ;
     %did_discard = false(component_count, 1) ;
-    parfor_progress(component_count) ;
+    parfor_progress(components_to_process_serially_count) ;
     % Do the big ones in a regular for loop, since each requires a lot of
     % memory
-    for component_id = 1 : big_component_count ,
+    for component_id = component_id_from_serial_processing_index ,
         % Process this component
+        tic
         component = component_from_component_id{component_id} ;
         process_single_component(output_folder_path, ...
                                  component_id, ...
@@ -91,14 +105,18 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
                                  spacing_in_nm, ...
                                  voxres, ...
                                  options) ;
+        toc                      
         
         % Update the progress bar
         parfor_progress() ;
     end
+    parfor_progress(0) ;
 
     % Do the small ones in a parfor loop, since memory is less of an issue
     % for them
-    parfor component_id = big_component_count+1 : component_count ,
+    fprintf('Starting the serial for loop, going to process %d components...\n', components_to_process_in_parallel_count) ;
+    parfor_progress(components_to_process_in_parallel_count) ;
+    parfor component_id = component_id_from_parallel_processing_index ,
         % Process this component
         component = component_from_component_id{component_id} ;
         process_single_component(output_folder_path, ...
@@ -116,9 +134,9 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         
         % Update the progress bar
         parfor_progress() ;
-    end
-    
+    end    
     parfor_progress(0) ;
+    
 %     discarded_components_count = sum(did_discard) ;
 %     fprintf('Of %d processed components, %d were discarded b/c they were too small after pruning.\n', ...
 %             component_count, ...
