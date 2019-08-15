@@ -5,7 +5,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     size_threshold = options.sizethreshold ;
     length_threshold = options.lengthThr ;
     do_visualize = options.viz ;
-    maximum_core_count_desired = options.maximum_core_count_desired ;
+    %maximum_core_count_desired = options.maximum_core_count_desired ;
 
     % Break out the 'params'
     origin_in_nm = [params.ox params.oy params.oz] ;  % nm
@@ -56,13 +56,6 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     %Eout = [];
     %iter = 0;
     %%
-    poolobj = gcp('nocreate');  % If no pool, do not create new one.
-    if isempty(poolobj) ,
-        parpool([1 maximum_core_count_desired]) ;
-    end
-    poolobj = gcp('nocreate');  % If no pool, do not create new one.
-    core_count = poolobj.NumWorkers ;
-    fprintf('Using %d cores.\n', core_count) ;
     
     % Create the output folder if it doesn't exist
     if ~exist(output_folder_path, 'dir') ,
@@ -72,7 +65,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     % Ignore too-small components
     % Also, figure out how many components are 'big', we'll do those one at a
     % time so as not to run out of memory   
-    big_component_threshold = 1e6 ;
+    big_component_threshold = 1e4 ;
     is_too_small = (size_from_component_id<=size_threshold) ;
     component_id_from_processing_index = find(~is_too_small) ;
     component_size_from_processing_index = size_from_component_id(component_id_from_processing_index) ;
@@ -113,8 +106,9 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     parfor_progress(0) ;
 
     % Do the small ones in a parfor loop, since memory is less of an issue
-    % for them
-    fprintf('Starting the serial for loop, going to process %d components...\n', components_to_process_in_parallel_count) ;
+    % for them    
+    fprintf('Starting the parallel for loop, going to process %d components...\n', components_to_process_in_parallel_count) ;
+    use_this_fraction_of_cores(1/2) ;
     parfor_progress(components_to_process_in_parallel_count) ;
     parfor component_id = component_id_from_parallel_processing_index ,
         % Process this component

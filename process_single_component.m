@@ -33,10 +33,9 @@ function process_single_component(output_folder_path, ...
     A_for_component = G_for_component.adjacency ;
 
     % Do something
-    root_node_id = find(sum(A_for_component)==1, 1) ;
     % profile clear
     % profile -memory on
-    eout = graphfuncs.buildgraph(A_for_component, root_node_id) ;
+    eout = graphfuncs.buildgraph(A_for_component) ;
     % profile off
     
     % Package things up into an "SWC structure".
@@ -72,7 +71,7 @@ function process_single_component(output_folder_path, ...
     % splitting long stretches into half
     if size(swc_struct.dA,1)>1
         inupdate_A = max(swc_struct.dA, swc_struct.dA') ;  % make into an undirected graph adjacency matrix
-        eoutprun = graphfuncs.buildgraph(inupdate_A, root_node_id) ;
+        eoutprun = graphfuncs.buildgraph(inupdate_A) ;
         component_size = max(eoutprun(:));
         swc_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else

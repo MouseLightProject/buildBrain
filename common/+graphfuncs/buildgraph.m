@@ -12,9 +12,13 @@ function tree_ij_pairs = buildgraph(A, root)
     % The root node never appears in the 1st column, so the output has
     % node_count-1 rows.
     
-%     if nargin<2 ,
-%         source = find(sum(Asub)==1, 1) ;
-%     end
+    if nargin<2 ,
+        degree = full(sum(A)) ;
+        degree_modified = degree ;
+        degree_modified(degree==0) = +inf ;
+        [~, min_degree_index] = min(degree_modified) ;  % min degree is hopefully one, but sometimes not possible
+        root = min_degree_index ;
+    end
     pred = graphshortestpath_pred_only(A, root, 'directed', false) ;
     tree_ij_pairs = [((1:size(A,1))') (pred(:))] ;  % each row is a (child, parent)
     tree_ij_pairs(tree_ij_pairs(:,2)==0,:) = [];  % delete the row with the root as the child, and node 0 as the parent
