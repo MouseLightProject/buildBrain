@@ -32,7 +32,10 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     if component_count > 0 ,
         fprintf('The largest component contains %d nodes.\n', size_from_component_id(1)) ;
     end
-    %A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
+    
+    % This will be useful in various places, so do it once here    
+    A = G.adjacency ;  % adjacency matrix, node_count x node_count, with zeros on the diagonal
+    
     %A_lower = tril(A,-1) ;  % lower-triangular part of A
     %S = length(CompsC);
     % size_from_component_id = cellfun(@length, components) ;
@@ -71,14 +74,14 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     
     % Figure out which ones already exist
     fprintf('Filtering out components for which output already exists...\n') ;
-    progress_bar('reset') ;
+    progress_bar = progress_bar_object(components_to_process_count) ;
     does_output_exist_from_processing_index = false(1, components_to_process_count) ;
     for processing_index = 1 : components_to_process_count ,
         component_id = component_id_from_processing_index(processing_index) ;
         tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
         tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
         does_output_exist_from_processing_index(processing_index) = logical(exist(tree_mat_file_path, 'file')) ;
-        progress_bar(processing_index, components_to_process_count) ;
+        progress_bar.update(processing_index) ;
     end    
     component_id_from_will_process_index = component_id_from_processing_index(~does_output_exist_from_processing_index) ;
     will_process_count = length(component_id_from_will_process_index) ;        
@@ -87,6 +90,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     % Figure out how many components are 'big', we'll do those one at a
     % time so as not to run out of memory   
     big_component_threshold = 1e4 ;
+    %big_component_threshold = 1 ;
     component_size_from_will_process_index = size_from_component_id(component_id_from_will_process_index) ;
     do_process_serially_from_will_process_index = (component_size_from_will_process_index>=big_component_threshold) ;
     component_id_from_serial_will_process_index = component_id_from_will_process_index(do_process_serially_from_will_process_index) ;
@@ -103,14 +107,14 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     % memory    
     for component_id = component_id_from_serial_will_process_index ,
         % Process this component
-        tic
         component = component_from_component_id{component_id} ;
-        subs_for_component = subs(component,:) ;
-        G_for_component = G.subgraph(component) ;
+        subs_for_component = subs(component,:) ;        
+        %G_for_component = G.subgraph(component) ;  % very very very slow!
+        A_for_component = A(component, component) ;  
         process_single_component(output_folder_path, ...
                                  component_id, ...
                                  component, ...
-                                 G_for_component, ...
+                                 A_for_component, ...
                                  subs_for_component, ...
                                  size_threshold, ...
                                  length_threshold, ...
@@ -119,7 +123,6 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
                                  spacing_in_nm, ...
                                  voxres, ...
                                  options) ;
-        toc                      
         
         % Update the progress bar
         parfor_progress() ;
@@ -133,21 +136,22 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     parfor_progress(components_to_process_in_parallel_count) ;
     component_from_component_id_as_parpool_constant = parallel.pool.Constant(component_from_component_id) ;
     subs_as_parpool_constant = parallel.pool.Constant(subs) ;
-    G_as_parpool_constant = parallel.pool.Constant(G) ;
+    A_as_parpool_constant = parallel.pool.Constant(A) ;
     parfor process_in_parallel_index = 1 : components_to_process_in_parallel_count ,        
         component_id = component_id_from_parallel_will_process_index(process_in_parallel_index) ;
         % Get all the parpool constants
         component_from_component_id_local = component_from_component_id_as_parpool_constant.Value ;
         subs_local = subs_as_parpool_constant.Value ;
-        G_local = G_as_parpool_constant.Value ;
+        A_local = A_as_parpool_constant.Value ;
         % Process this component
         component = component_from_component_id_local{component_id} ;
         subs_for_component = subs_local(component,:) ;
-        G_for_component = G_local.subgraph(component) ;
+        %G_for_component = G_local.subgraph(component) ;  % slow slow slow
+        A_for_component = A_local(component, component) ;  
         process_single_component(output_folder_path, ...
                                  component_id, ...
                                  component, ...
-                                 G_for_component, ...
+                                 A_for_component, ...
                                  subs_for_component, ...
                                  size_threshold, ...
                                  length_threshold, ...

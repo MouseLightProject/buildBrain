@@ -4,8 +4,8 @@ function tree_ij_pairs = buildgraph(A, root)
     % In the output, the path from a node to the root will be the shortest
     % such path in the orginal graph.
     % 
-    % Asub should be the adjacency matrix for an undirected graph, and thus
-    % symmetric.
+    % A should be the adjacency matrix for an undirected graph, and thus
+    % symmetric.  All edges must also have the same weight.
     %
     % The output is a (node_count-1) x 2 matrix.
     % Each row lists a (child, parent) pair.
@@ -19,7 +19,7 @@ function tree_ij_pairs = buildgraph(A, root)
         [~, min_degree_index] = min(degree_modified) ;  % min degree is hopefully one, but sometimes not possible
         root = min_degree_index ;
     end
-    pred = graphshortestpath_pred_only(A, root, 'directed', false) ;
+    pred = graphshortestpath_pred_only(A, root, 'directed', false, 'method', 'BFS') ;
     tree_ij_pairs = [((1:size(A,1))') (pred(:))] ;  % each row is a (child, parent)
     tree_ij_pairs(tree_ij_pairs(:,2)==0,:) = [];  % delete the row with the root as the child, and node 0 as the parent
 end
