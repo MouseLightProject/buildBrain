@@ -47,7 +47,7 @@ function workflow1_frags_as_swcs(input_folder_path, output_folder_path, maximum_
     if ~exist(output_folder_path, 'dir') ,
         mkdir(output_folder_path) ;
     end
-    full_tree_file_names = simple_dir(fullfile(input_folder_path, '*.mat')) ;
+    full_tree_file_names = simple_dir(fullfile(input_folder_path, 'auto-cc-*.mat')) ;
     full_tress_to_process_count = length(full_tree_file_names) ;
     tic_id = tic() ;
     fprintf('Starting the big parfor loop, going to process %d full trees...\n', full_tress_to_process_count) ;
