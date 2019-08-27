@@ -1,7 +1,9 @@
 function write_full_tree_as_swc(full_trees_output_folder_path, component_id, outtree, params, color_from_component_id)
     Aout = outtree.dA;
     nout = size(Aout,1);
-    XYZout = [outtree.X,outtree.Y,outtree.Z]-1;
+    %XYZout = [outtree.X,outtree.Y,outtree.Z]-1;  % this is what
+    %caused the horrble off-by-one issues in August 2019!
+    XYZout = [outtree.X,outtree.Y,outtree.Z] ;  
     Rout = outtree.R;
     Dout = outtree.D;
     % transform location
