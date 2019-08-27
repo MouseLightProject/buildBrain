@@ -1,4 +1,4 @@
-function workflow1_full_trees_only_as_mats(G, subs, options)
+function workflow1_full_trees_only_as_mats(G, ijks, options)
     % Break out the options structure
     params = options.params ;
     output_folder_path = options.outfolder ;
@@ -18,7 +18,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     %node_count = height(G.Nodes) ;
     %[components, size_from_component_id] = conncomp(G,'OutputForm','cell') ;  % cell array, each element a 1d array of node ids in G
     fractionated_components_file_path = fullfile(output_folder_path, 'fractionated_components.mat') ;
-    if exist(fractionated_components_file_path, 'file') ,
+    if exist(fractionated_components_file_path, 'file') && ~options.do_force_computations ,
         load(fractionated_components_file_path, 'component_from_component_id', 'size_from_component_id', 'maximum_component_size') ;  %#ok<NASGU>
     else
         %maximum_component_size = inf ;
@@ -76,13 +76,17 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     fprintf('Filtering out components for which output already exists...\n') ;
     progress_bar = progress_bar_object(components_to_process_count) ;
     does_output_exist_from_processing_index = false(1, components_to_process_count) ;
-    for processing_index = 1 : components_to_process_count ,
-        component_id = component_id_from_processing_index(processing_index) ;
-        tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
-        does_output_exist_from_processing_index(processing_index) = logical(exist(tree_mat_file_path, 'file')) ;
-        progress_bar.update(processing_index) ;
-    end    
+    if options.do_force_computations ,
+        progress_bar.update(components_to_process_count) ;
+    else
+        for processing_index = 1 : components_to_process_count ,
+            component_id = component_id_from_processing_index(processing_index) ;
+            tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
+            tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
+            does_output_exist_from_processing_index(processing_index) = logical(exist(tree_mat_file_path, 'file')) ;
+            progress_bar.update(processing_index) ;
+        end    
+    end
     component_id_from_will_process_index = component_id_from_processing_index(~does_output_exist_from_processing_index) ;
     will_process_count = length(component_id_from_will_process_index) ;        
     fprintf('%d components left.\n', will_process_count) ;
@@ -90,9 +94,12 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     % Figure out how many components are 'big', we'll do those one at a
     % time so as not to run out of memory   
     big_component_threshold = 1e4 ;
-    %big_component_threshold = 1 ;
-    component_size_from_will_process_index = size_from_component_id(component_id_from_will_process_index) ;
-    do_process_serially_from_will_process_index = (component_size_from_will_process_index>=big_component_threshold) ;
+    if options.do_all_computations_serially ,
+        do_process_serially_from_will_process_index = true(size(component_id_from_will_process_index)) ;
+    else
+        component_size_from_will_process_index = size_from_component_id(component_id_from_will_process_index) ;
+        do_process_serially_from_will_process_index = (component_size_from_will_process_index>=big_component_threshold) ;
+    end
     component_id_from_serial_will_process_index = component_id_from_will_process_index(do_process_serially_from_will_process_index) ;
     component_id_from_parallel_will_process_index = component_id_from_will_process_index(~do_process_serially_from_will_process_index) ;
     %component_size_from_serial_will_process_index = component_size_from_component_id(component_id_from_serial_will_process_index) ;
@@ -108,14 +115,14 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     for component_id = component_id_from_serial_will_process_index ,
         % Process this component
         component = component_from_component_id{component_id} ;
-        subs_for_component = subs(component,:) ;        
+        ijks_for_component = ijks(component,:) ;        
         %G_for_component = G.subgraph(component) ;  % very very very slow!
         A_for_component = A(component, component) ;  
         process_single_component(output_folder_path, ...
                                  component_id, ...
                                  component, ...
                                  A_for_component, ...
-                                 subs_for_component, ...
+                                 ijks_for_component, ...
                                  size_threshold, ...
                                  length_threshold, ...
                                  do_visualize, ...
@@ -135,7 +142,7 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
     use_this_many_cores(maximum_core_count_desired) ;
     parfor_progress(components_to_process_in_parallel_count) ;
     component_from_component_id_as_parpool_constant = parallel.pool.Constant(component_from_component_id) ;
-    subs_as_parpool_constant = parallel.pool.Constant(subs) ;
+    subs_as_parpool_constant = parallel.pool.Constant(ijks) ;
     A_as_parpool_constant = parallel.pool.Constant(A) ;
     parfor process_in_parallel_index = 1 : components_to_process_in_parallel_count ,        
         component_id = component_id_from_parallel_will_process_index(process_in_parallel_index) ;
@@ -145,14 +152,14 @@ function workflow1_full_trees_only_as_mats(G, subs, options)
         A_local = A_as_parpool_constant.Value ;
         % Process this component
         component = component_from_component_id_local{component_id} ;
-        subs_for_component = subs_local(component,:) ;
+        ijks_for_component = subs_local(component,:) ;
         %G_for_component = G_local.subgraph(component) ;  % slow slow slow
         A_for_component = A_local(component, component) ;  
         process_single_component(output_folder_path, ...
                                  component_id, ...
                                  component, ...
                                  A_for_component, ...
-                                 subs_for_component, ...
+                                 ijks_for_component, ...
                                  size_threshold, ...
                                  length_threshold, ...
                                  do_visualize, ...

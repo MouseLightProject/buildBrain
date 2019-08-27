@@ -1,5 +1,5 @@
-function build_full_trees_as_mats_workflow1(configuration_file_path)
-    options = configparser(configuration_file_path);
+function build_full_trees_as_mats_workflow1(options)
+    %options = configparser(configuration_file_path);
     % if ~isfield(options,'sampling')
     %     options.sampling = 'uni';
     % end
@@ -25,13 +25,17 @@ function build_full_trees_as_mats_workflow1(configuration_file_path)
     options.params = params ;
 
     output_folder_path = options.outfolder ;
-    graph_file_path = fullfile(output_folder_path, 'graph.mat') ;
-    if exist(graph_file_path, 'file') ,
-        load(graph_file_path, 'subs', 'Gin') ;
-    else        
-        [subs,~,A,~] = skel2graph(options) ;
-        Gin = graph(max(A,A')) ;
-        save(graph_file_path, 'subs', 'Gin', '-v7.3') ;
+    if ~exist(output_folder_path, 'file') ,
+        mkdir(output_folder_path) ;
     end
-    workflow1_full_trees_only_as_mats(Gin, subs, options) ;
+    
+    graph_file_path = fullfile(output_folder_path, 'skeleton-graph.mat') ;
+    if exist(graph_file_path, 'file') && ~options.do_force_computations ,
+        load(graph_file_path, 'skeleton_graph', 'skeleton_ijks') ;
+    else        
+        [skeleton_ijks,~,A,~] = skel2graph(options) ;
+        skeleton_graph = graph(max(A,A')) ;
+        save(graph_file_path, 'skeleton_graph', 'skeleton_ijks', '-v7.3') ;
+    end
+    workflow1_full_trees_only_as_mats(skeleton_graph, skeleton_ijks, options) ;
 end

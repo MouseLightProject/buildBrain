@@ -1,4 +1,4 @@
-function [subs,edges,A,weights_] = skel2graph(opt)
+function [ijks,edges,A,weights_] = skel2graph(opt)
 
 mydir = dir(fullfile(opt.skelfolder,'*.txt'));
 % check the format for a non zero file
@@ -38,7 +38,7 @@ edges = [pairs{:}]';clear pairs;
 %clc
 clear subs
 [keepthese,ia,ic] = unique(edges(:,[1 2]));
-[subs(:,1),subs(:,2),subs(:,3)] = ind2sub(opt.params.outsiz([1 2 3]),keepthese);
+[ijks(:,1),ijks(:,2),ijks(:,3)] = ind2sub(opt.params.outsiz([1 2 3]),keepthese);
 edges_ = reshape(ic,[],2);
 weights_ = edges(ia,3:end);
 if isempty(edges_);return;end
