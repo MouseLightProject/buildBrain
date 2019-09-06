@@ -1,6 +1,15 @@
 function build_fragments_as_swcs_workflow1_2019_05_27()
-    this_file_path = mfilename('fullpath') ;
-    this_folder_path = fileparts(this_file_path) ;
-    configuration_file_path = fullfile(this_folder_path, 'config_files', 'build-fragments-2019-05-27.cfg') ;
-    build_fragments_as_swcs_workflow1(configuration_file_path) ;
+    input_folder_path = '/nrs/mouselight/cluster/classifierOutputs/2019-05-27/build-brain-output/full-as-mats' ;
+    output_folder_path = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2019-05-27/build-brain-output/frags-one-octant' ;
+    maximum_core_count_desired = inf ;
+    minimum_centerpoint_count_per_fragment = 1 ;    
+    bounding_box_low_corner_xyz = [76577 -inf -inf] ;
+    bounding_box_high_corner_xyz = [+inf 17008 36261] ;
+    
+    workflow1_frags_as_swcs(input_folder_path, ...
+                            output_folder_path, ...
+                            maximum_core_count_desired, ...
+                            minimum_centerpoint_count_per_fragment, ...
+                            bounding_box_low_corner_xyz, ...
+                            bounding_box_high_corner_xyz) ;                            
 end
