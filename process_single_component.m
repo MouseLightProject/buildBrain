@@ -1,6 +1,7 @@
 function process_single_component(output_folder_path, ...
                                   component_id, ...
                                   component, ...
+                                  component_count, ...
                                   A_for_component, ...
                                   ijks_for_component, ...
                                   size_threshold, ...
@@ -14,10 +15,6 @@ function process_single_component(output_folder_path, ...
     
     % Output some info
     %fprintf('Processing component with id %d, size is %d nodes...\n', component_id, component_size) ;
-
-    % Compute the output file path
-    tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
-    tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
     
 %     % Get the graph for this component
 %     A_for_component = G_for_component.adjacency ;
@@ -94,14 +91,24 @@ function process_single_component(output_folder_path, ...
         drawnow
     end        
 
-    % Check for an off-by-one shift
-    tree_ijks = [outtree_in_voxels.X outtree_in_voxels.Y outtree_in_voxels.Z] ;
-    is_tree_point_a_skeleton_point_from_ijk = is_point_drawn_from_pool(tree_ijks, ijks_for_component, [1 1 1]) ;
-    fraction_of_tree_points_that_match_skeleton_points = mean(is_tree_point_a_skeleton_point_from_ijk) 
+%     % Check for an off-by-one shift
+%     tree_ijks = [outtree_in_voxels.X outtree_in_voxels.Y outtree_in_voxels.Z] ;
+%     is_tree_point_a_skeleton_point_from_ijk = is_point_drawn_from_pool(tree_ijks, ijks_for_component, [1 1 1]) ;
+%     fraction_of_tree_points_that_match_skeleton_points = mean(is_tree_point_a_skeleton_point_from_ijk) ;
     
     % Convert centerpoint from voxel coords to um
     outtree = convert_centerpoint_units_to_um(outtree_in_voxels, origin_in_nm, spacing_in_nm) ;
 
+    % Convert to a named tree
+    digits_needed_for_index = floor(log10(component_count)) + 1 ;
+    tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'
+    tree_name = sprintf(tree_name_template, component_id) ;
+    named_tree = named_tree_from_tree_as_dA_struct(outtree, tree_name) ;    
+    
+    % Compute the output file path
+    tree_mat_file_name = sprintf('%s.mat', tree_name) ;
+    tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
+    
     % Write full tree as a .mat file
-    save_tree_as_mat(tree_mat_file_path, component_id, outtree) ;
-end    
+    save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+end
