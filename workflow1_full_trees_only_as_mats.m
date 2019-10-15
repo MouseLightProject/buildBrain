@@ -79,9 +79,13 @@ function workflow1_full_trees_only_as_mats(G, ijks, options)
     if options.do_force_computations ,
         progress_bar.update(components_to_process_count) ;
     else
+        digits_needed_for_index = floor(log10(component_count)) + 1 ;
+        tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'      
         for processing_index = 1 : components_to_process_count ,
-            component_id = component_id_from_processing_index(processing_index) ;
-            tree_mat_file_name = sprintf('auto-cc-%06d.mat', component_id) ;
+            component_id = ...
+                component_id_from_processing_index(processing_index) ;
+            tree_name = sprintf(tree_name_template, component_id) ;
+            tree_mat_file_name = sprintf('%s.mat', tree_name) ;
             tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);
             does_output_exist_from_processing_index(processing_index) = logical(exist(tree_mat_file_path, 'file')) ;
             progress_bar.update(processing_index) ;
@@ -112,7 +116,9 @@ function workflow1_full_trees_only_as_mats(G, ijks, options)
     parfor_progress(components_to_process_serially_count) ;
     % Do the big ones in a regular for loop, since each requires a lot of
     % memory    
-    for component_id = component_id_from_serial_will_process_index ,
+    for process_serially_index = 1 : components_to_process_serially_count ,
+    %for component_id = component_id_from_serial_will_process_index ,
+        component_id = component_id_from_serial_will_process_index(process_serially_index) ;        
         % Process this component
         component = component_from_component_id{component_id} ;
         ijks_for_component = ijks(component,:) ;        
@@ -145,7 +151,7 @@ function workflow1_full_trees_only_as_mats(G, ijks, options)
     component_from_component_id_as_parpool_constant = parallel.pool.Constant(component_from_component_id) ;
     subs_as_parpool_constant = parallel.pool.Constant(ijks) ;
     A_as_parpool_constant = parallel.pool.Constant(A) ;
-    parfor process_in_parallel_index = 1 : components_to_process_in_parallel_count ,        
+    parfor process_in_parallel_index = 1 : components_to_process_in_parallel_count ,          
         component_id = component_id_from_parallel_will_process_index(process_in_parallel_index) ;
         % Get all the parpool constants
         component_from_component_id_local = component_from_component_id_as_parpool_constant.Value ;

@@ -1,9 +1,9 @@
-options.whole_brain_h5_p_map_file_path = '/nrs/mouselight-v/cluster/classifierOutputs/2019-09-06/whole-brain-p-map-as-h5/2019-05-27-whole-brain-p-map.h5' ;
+options.whole_brain_h5_p_map_file_path = '/nrs/mouselight-v/cluster/classifierOutputs/2019-09-06/whole-brain-p-map-as-h5/whole-brain-p-map.h5' ;
 options.whole_brain_h5_p_map_dataset_path = '/prob0' ;
 options.whole_brain_h5_p_map_properties_group_path = '/prob0_props' ;
-options.skelfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2019-05-27/skeletonization' ;
+options.skelfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2019-09-06/skeletonization' ;
 
-options.outfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2019-05-27/build-brain-output/full-as-named-tree-mats' ;
+options.outfolder = '/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/2019-09-06/build-brain-output/full-as-named-tree-mats' ;
 
 options.writefull = 1 ;
 options.writefrag = 1 ;
@@ -31,6 +31,9 @@ options.prune = 1 ;
 options.filterGraph = 0 ;
 options.graph2branch = 1 ;
 
-options.maximum_core_count_desired = 20 ;
+options.maximum_core_count_desired = 18 ;
+
+options.do_force_computations = false ;
+options.do_all_computations_serially = false ;
 
 build_full_trees_as_mats_workflow1(options) ;

@@ -33,8 +33,8 @@ function build_full_trees_as_mats_workflow1(options)
     if exist(graph_file_path, 'file') && ~options.do_force_computations ,
         load(graph_file_path, 'skeleton_graph', 'skeleton_ijks') ;
     else        
-        [skeleton_ijks,~,A,~] = skel2graph(options) ;
-        skeleton_graph = graph(max(A,A')) ;
+        [skeleton_ijks,~,A,~] = skel2graph(options.skelfolder, brainSize) ;        
+        skeleton_graph = graph(A) ;
         save(graph_file_path, 'skeleton_graph', 'skeleton_ijks', '-v7.3') ;
     end
     workflow1_full_trees_only_as_mats(skeleton_graph, skeleton_ijks, options) ;

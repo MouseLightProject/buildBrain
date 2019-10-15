@@ -9,9 +9,10 @@ function convert_full_trees_to_swc(trees_as_swc_folder_path, trees_as_mat_folder
     %raw_color_from_file_index = jet(file_count);
     %color_from_file_index = raw_color_from_file_index(randperm(file_count),:);
     
-    color_map = distinct_hues_simple() ;    
+    color_map = jet(256) ;    
     rep_count = ceil(file_count/size(color_map,1)) ;
-    color_from_file_index = repmat(color_map, [rep_count 1]) ;
+    raw_color_from_file_index = repmat(color_map, [rep_count 1]) ;
+    color_from_file_index = raw_color_from_file_index(randperm(file_count),:);
     
     fprintf('Converting %d trees as .mat to .swc...\n', file_count) ;
     parfor_progress(file_count) ;

@@ -1,5 +1,5 @@
-function [branch,list] = getBranches(G,rootnode)
-%GETBRANCHES Given directed graph G, returns list of branch segments
+function [branch,list] = getBranches(dA, rootnode)
+%GETBRANCHES Given directed adjacency matrix dA, returns list of branch segments
 % 
 % [OUTPUTARGS] = GETBRANCHES(INPUTARGS) Explain usage here
 % 
@@ -21,20 +21,20 @@ function [branch,list] = getBranches(G,rootnode)
 
 % critical nodes
 if nargin<2
-    rootnode = find(sum(G,2)==0);
+    rootnode = find(sum(dA,2)==0);
 end
-branchnodes = find(sum(G)>1);
+branchnodes = find(sum(dA)>1);
 % root is branch if it splits into 3
-if sum(G(:,rootnode))<3
+if sum(dA(:,rootnode))<3
     branchnodes = setdiff(branchnodes,rootnode);
 end
-termnodes = find(sum(G)==0);
+termnodes = find(sum(dA)==0);
 % from all branch and termnodes, get segmentsuntill another critical point
 % is found
 criticalset = [rootnode, branchnodes, termnodes];
 
 % get pred
-[DISC,PRED,CLOSE] = graphtraverse(G',rootnode,'DIRECTED',true);
+[DISC,PRED,CLOSE] = graphtraverse(dA',rootnode,'DIRECTED',true);
 %[DIST2,PATH2,PRED2] = graphshortestpath(G',rootnode,'DIRECTED',true);
 
 %%
@@ -42,7 +42,7 @@ criticfalPRED = PRED;
 criticfalPRED(criticalset) = 0;
 iter = 0;
 clear branch
-list = zeros(1,size(G,1));
+list = zeros(1,size(dA,1));
 for idx = criticalset
     %%
     set = idx;
