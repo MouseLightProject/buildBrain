@@ -55,9 +55,9 @@ function process_single_component(output_folder_path, ...
     end
     
     %%
-    did_prune_some = true ;  % just to get prunTree() to be called at least once
+    did_prune_some = true ;  % just to get prune_tree() to be called at least once
     while did_prune_some ,
-        [dA_struct, did_prune_some] = prunTree(dA_struct, length_threshold, voxres) ;
+        [dA_struct, did_prune_some] = prune_tree(dA_struct, length_threshold, voxres) ;
         if do_visualize
             hold on
             gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
