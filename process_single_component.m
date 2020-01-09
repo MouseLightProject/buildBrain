@@ -13,6 +13,10 @@ function process_single_component(output_folder_path, ...
                                   options)
     component_size= length(component) ;
     
+%     if ismember(component_id, [22361 26417 28631]) ,
+%         do_visualize = true ;
+%     end    
+    
     % Output some info
     %fprintf('Processing component with id %d, size is %d nodes...\n', component_id, component_size) ;
     
@@ -36,45 +40,55 @@ function process_single_component(output_folder_path, ...
     % often just set to all ones for convenience.
     % X,Y,Z: The coordinates of each node, ideally in um, but sometimes we
     % have them in voxel indices.
-    swc_struct.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
-    swc_struct.D = ones(component_size,1);
-    swc_struct.R = ones(component_size,1);
-    swc_struct.X = ijks_for_component(:,1);
-    swc_struct.Y = ijks_for_component(:,2);
-    swc_struct.Z = ijks_for_component(:,3);
+    dA_struct.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
+    dA_struct.D = ones(component_size,1);
+    dA_struct.R = ones(component_size,1);
+    dA_struct.X = ijks_for_component(:,1);
+    dA_struct.Y = ijks_for_component(:,2);
+    dA_struct.Z = ijks_for_component(:,3);
+
+    if do_visualize
+        figure() ;
+        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
+        title(sprintf('Component %d', component_id)) ;
+        drawnow
+    end
     
     %%
     did_prune_some = true ;  % just to get prunTree() to be called at least once
     while did_prune_some ,
-        [swc_struct, did_prune_some] = prunTree(swc_struct, length_threshold, voxres) ;
+        [dA_struct, did_prune_some] = prunTree(dA_struct, length_threshold, voxres) ;
         if do_visualize
             hold on
-            gplot3(swc_struct.dA,[swc_struct.X,swc_struct.Y,swc_struct.Z]);
+            gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
             drawnow
         end
     end
     %%
     % shuffle root to one of the leafs for efficiency and not
     % splitting long stretches into half
-    if size(swc_struct.dA,1)>1
-        inupdate_A = max(swc_struct.dA, swc_struct.dA') ;  % make into an undirected graph adjacency matrix
+    if size(dA_struct.dA,1)>1
+        inupdate_A = max(dA_struct.dA, dA_struct.dA') ;  % make into an undirected graph adjacency matrix
         eoutprun = graphfuncs.buildgraph(inupdate_A) ;
         component_size = max(eoutprun(:));
-        swc_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
+        dA_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else
     end
     if do_visualize
         hold on
-        gplot3(swc_struct.dA,[swc_struct.X,swc_struct.Y,swc_struct.Z],'LineWidth',3);
+        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z],'LineWidth',3);
         drawnow
     end
     %%
-    if length(swc_struct.dA)<size_threshold
-        %fprintf('Component with id %d fails to meet the size threshold after pruning, so discarding.\n', component_id) ;
+    if length(dA_struct.X)<size_threshold
+        fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
+                component_id, ...
+                size_threshold, ...
+                length(dA_struct.dA)) ;
         return
     end
     %%
-    swc_struct_smoothed = smoothtree(swc_struct,options);
+    swc_struct_smoothed = smoothtree(dA_struct,options);
     %%
     % [L,list] = getBranches(inupdate_smoothed.dA);
 %     if 0

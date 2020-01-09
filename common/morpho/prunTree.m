@@ -1,4 +1,4 @@
-function [inupdate, did_prune_some] = prunTree(in_, lengthThr, res)
+function [output_dA_struct, did_prune_some] = prunTree(input_dA_struct, lengthThr, spacing)
     %PRUNTREE Pruns a tree with a given length threshold
     % 
     % [OUTPUTARGS] = PRUNTREE(INPUTARGS) Explain usage here
@@ -16,20 +16,20 @@ function [inupdate, did_prune_some] = prunTree(in_, lengthThr, res)
     % $Author: base $	$Date: 2015/10/28 10:42:45 $	$Revision: 0.1 $
     % Copyright: HHMI 2015
 
-    A = in_.dA;
-    XYZ = [in_.X*res(1) in_.Y*res(2) in_.Z*res(3)];% in (um)
-    L = getBranches(A);
+    dA = input_dA_struct.dA;
+    xyz = [input_dA_struct.X*spacing(1) input_dA_struct.Y*spacing(2) input_dA_struct.Z*spacing(3)];  % um
+    L = getBranches(dA);
     numBranches = length(L);
     % find leaf branches
-    termnodes = find(sum(A)==0);
+    termnodes = find(sum(dA)==0);
     leafbranches = zeros(1,numBranches);
     %deleteThese = [];
-    node_count = size(A, 1) ;
+    node_count = size(dA, 1) ;
     is_node_doomed = false(node_count, 1) ;
     for ii=1:numBranches
         Liiset = L(ii).set;
         if ~isempty(Liiset) && any(termnodes==Liiset(1)) %& length(Liiset)<sizeThr
-            lenBranch = sum(sqrt(sum(diff(XYZ([Liiset L(ii).parentnode],:)).^2,2)));
+            lenBranch = sum(sqrt(sum(diff(xyz([Liiset L(ii).parentnode],:)).^2,2)));
             if lenBranch<lengthThr
                 leafbranches(ii) = 1;
                 %deleteThese = [deleteThese Liiset];
@@ -39,14 +39,14 @@ function [inupdate, did_prune_some] = prunTree(in_, lengthThr, res)
     end
 
     % Main output is the input minus the doomed nodes
-    inupdate = in_;
-    inupdate.dA(is_node_doomed,:) = [];
-    inupdate.dA(:,is_node_doomed) = [];
-    inupdate.X(is_node_doomed) = [];
-    inupdate.Y(is_node_doomed) = [];
-    inupdate.Z(is_node_doomed) = [];
-    inupdate.R(is_node_doomed) = [];
-    inupdate.D(is_node_doomed) = [];
+    output_dA_struct = input_dA_struct;
+    output_dA_struct.dA(is_node_doomed,:) = [];
+    output_dA_struct.dA(:,is_node_doomed) = [];
+    output_dA_struct.X(is_node_doomed) = [];
+    output_dA_struct.Y(is_node_doomed) = [];
+    output_dA_struct.Z(is_node_doomed) = [];
+    output_dA_struct.R(is_node_doomed) = [];
+    output_dA_struct.D(is_node_doomed) = [];
 
     % If required, return a list of the deleted node_ids
     if nargout>=2 ,
