@@ -22,27 +22,29 @@ function [output_dA_struct, did_prune_some] = prune_tree_some(input_dA_struct, l
     %xyz = [input_dA_struct.X*spacing(1) input_dA_struct.Y*spacing(2) input_dA_struct.Z*spacing(3)];  % um
     branches = get_branches(dA) ;
     branches_check = getBranchesOld(dA) ;
-    assert(isequal(branches, branches_check)) ;
     branch_count = length(branches);
     % find leaf branches
-    node_indices_of_terminals = find(sum(dA)==0);
+    in_degree_from_node_id = sum(dA,1) ;
+    node_ids_of_terminals = find(in_degree_from_node_id==0) ;
     %is_leaf_from_branch_index = zeros(1,branch_count);
     %deleteThese = [];
     node_count = size(xyz, 1) ;
     is_node_doomed = false(node_count, 1) ;
     for branch_index = 1:branch_count ,
         this_branch = branches(branch_index) ;
-        node_indices_in_this_branch = this_branch.set;
-        this_branch_parent_node_index = this_branch.parentnode ;
-        if ~isempty(node_indices_in_this_branch) , ...
-            if any(node_indices_of_terminals==node_indices_in_this_branch(1)) ,
-                dr_to_parent = diff(xyz([node_indices_in_this_branch this_branch_parent_node_index],:)) ;
-                length_to_parent = sqrt(sum(dr_to_parent.^2,2)) ;
+        node_ids_in_this_branch = this_branch.node_ids;
+        this_branch_parent_node_id = this_branch.parent_node_id ;
+        is_this_the_root_branch = (this_branch_parent_node_id == 0) ;
+        if ~is_this_the_root_branch ,
+            distal_node_id = node_ids_in_this_branch(1) ,
+            if ismember(distal_node_id, node_ids_of_terminals) ,
+                dr_to_parent = diff(xyz([node_ids_in_this_branch this_branch_parent_node_id],:)) ;
+                length_to_parent = sqrt(sum(dr_to_parent.^2, 2)) ;
                 this_branch_length = sum(length_to_parent);
                 if this_branch_length < length_threshold ,
                     %is_leaf_from_branch_index(branch_index) = 1;
                     %deleteThese = [deleteThese Liiset];
-                    is_node_doomed(node_indices_in_this_branch) = true ;
+                    is_node_doomed(node_ids_in_this_branch) = true ;
                 end
             end
         end
