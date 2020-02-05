@@ -1,4 +1,4 @@
-function [outtree,selectedIdx] = sampleTree(intree,opt)
+function [outtree,selectedIdx] = sample_tree(intree, voxres, sampling_style, sampling_interval, lengthThr, largesampling)
 %SAMPLETREE Summary of this function goes here
 %
 % [OUTPUTARGS] = SAMPLETREE(INPUTARGS) Explain usage here
@@ -15,7 +15,7 @@ function [outtree,selectedIdx] = sampleTree(intree,opt)
 
 % $Author: base $	$Date: 2016/07/18 16:22:30 $	$Revision: 0.1 $
 % Copyright: HHMI 2016
-[L,list] = getBranches(intree.dA);
+[L,list] = get_branches(intree.dA);
 XYZ = [intree.X intree.Y intree.Z];
 R = intree.R;
 D = intree.D;
@@ -39,19 +39,20 @@ for ii=1:length(L)
         set_ii = [L(ii).parentnode set_ii(end:-1:1)];
         % get length of branch
         xyz = XYZ(set_ii,:);
-        xyz = xyz.*(ones(size(xyz,1),1)*opt.params.voxres);
-        switch opt.sampling
+        xyz = xyz.*(ones(size(xyz,1),1)*voxres);
+        switch sampling_style
             case 'uni'
                 p2 = sum((xyz(1:end-1,:)-xyz(2:end,:)).^2,2);
             case 'curv'
                 p2 = (xyz(1:end-1,:)-xyz(2:end,:)).^2*[1;1;5];
             otherwise
+                error('"%s" is not an allowed sampling style', sampling_style) ;
         end
         dists = sqrt(p2); % resolution is 0.33 um per pixel => multiply with 3 to make it unit um
         cdist = [0;cumsum(dists)];
-        if cdist(end)>opt.samplingInterval
+        if cdist(end)>sampling_interval
             % make sure tip is in the list
-            [aa,idx]=min(pdist2([0:opt.samplingInterval:cdist(end)-opt.samplingInterval]',cdist(:)),[],2);
+            [aa,idx]=min(pdist2([0:sampling_interval:cdist(end)-sampling_interval]',cdist(:)),[],2);
             indicies = [set_ii(idx) set_ii(end)];
         else
             indicies = [set_ii(1) set_ii(end)];
@@ -67,8 +68,8 @@ for ii=1:length(L)
         set_ii = set_ii(end:-1:1);
         % get length of branch
         xyz = XYZ(set_ii,:);
-        xyz = xyz.*(ones(size(xyz,1),1)*opt.params.voxres);
-        switch opt.sampling
+        xyz = xyz.*(ones(size(xyz,1),1)*voxres);
+        switch sampling_style
             case 'uni'
                 p2 = sum((xyz(1:end-1,:)-xyz(2:end,:)).^2,2);
             case 'curv'
@@ -78,20 +79,20 @@ for ii=1:length(L)
         dists = sqrt(p2); % resolution is 0.33 um per pixel => multiply with 3 to make it unit um
         cdist = cumsum(dists);
         
-        if isempty(cdist) | cdist(end)<=1.5*opt.lengthThr %(um) : branch is a connactor and small
+        if isempty(cdist) | cdist(end)<=1.5*lengthThr %(um) : branch is a connactor and small
             % get the last index as an indicator
             indicies = set_ii(end); % keep the branch point (set flows from child towards parent)
-        elseif cdist(end)>1.5*opt.lengthThr & cdist(end)<opt.largesampling
+        elseif cdist(end)>1.5*lengthThr & cdist(end)<largesampling
             %sample every 15(um): sampling interval for short branches
-            sampling = min(1.5*opt.lengthThr,15);
-            [indicies] = sampleXum(cdist,sampling,set_ii);
-        elseif cdist(end)>opt.largesampling %(um)
+            sampling_style = min(1.5*lengthThr,15);
+            [indicies] = sampleXum(cdist,sampling_style,set_ii);
+        elseif cdist(end)>largesampling %(um)
             %sample every 50(um): sampling interval for long branches
-            if 1.5*opt.lengthThr>opt.largesampling
-                warning('pruning length is too big: %d compared to largesamling: %d',opt.lengthThr,opt.largesampling)
+            if 1.5*lengthThr>largesampling
+                warning('pruning length is too big: %d compared to largesampling: %d',lengthThr,largesampling)
             end
-            sampling = min(max(1.5*opt.lengthThr,50),opt.largesampling);
-            [indicies] = sampleXum(cdist,sampling,set_ii);
+            sampling_style = min(max(1.5*lengthThr,50),largesampling);
+            [indicies] = sampleXum(cdist,sampling_style,set_ii);
         end
         selectedIdx{ii} = indicies;
     end

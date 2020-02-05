@@ -10,7 +10,9 @@ function process_single_component(output_folder_path, ...
                                   origin_in_nm, ...
                                   spacing_in_nm, ...
                                   voxres, ...
-                                  options)
+                                  sampling_style, ...
+                                  sampling_interval, ...
+                                  largesampling)
     component_size= length(component) ;
     
 %     if ismember(component_id, [22361 26417 28631]) ,
@@ -23,10 +25,15 @@ function process_single_component(output_folder_path, ...
 %     % Get the graph for this component
 %     A_for_component = G_for_component.adjacency ;
 
+    if ~is_component_a_binary_tree(A_for_component) ,
+        do_visualize = true ;
+        keyboard
+    end
+    
     % Do something
     % profile clear
     % profile -memory on
-    eout = graphfuncs.buildgraph(A_for_component) ;
+    child_parent_node_id_pairs = rooted_spanning_tree_edges_from_graph(A_for_component) ;
     % profile off
     
     % Package things up into an "SWC structure".
@@ -40,7 +47,7 @@ function process_single_component(output_folder_path, ...
     % often just set to all ones for convenience.
     % X,Y,Z: The coordinates of each node, ideally in um, but sometimes we
     % have them in voxel indices.
-    dA_struct.dA = sparse(eout(:,1),eout(:,2),1,component_size,component_size);
+    dA_struct.dA = sparse(child_parent_node_id_pairs(:,1),child_parent_node_id_pairs(:,2),1,component_size,component_size);
     dA_struct.D = ones(component_size,1);
     dA_struct.R = ones(component_size,1);
     dA_struct.X = ijks_for_component(:,1);
@@ -55,21 +62,14 @@ function process_single_component(output_folder_path, ...
     end
     
     %%
-    did_prune_some = true ;  % just to get prune_tree() to be called at least once
-    while did_prune_some ,
-        [dA_struct, did_prune_some] = prune_tree(dA_struct, length_threshold, voxres) ;
-        if do_visualize
-            hold on
-            gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
-            drawnow
-        end
-    end
+    dA_struct = prune_tree(dA_struct, length_threshold, voxres, do_visualize) ;    
+    
     %%
     % shuffle root to one of the leafs for efficiency and not
     % splitting long stretches into half
     if size(dA_struct.dA,1)>1
         inupdate_A = max(dA_struct.dA, dA_struct.dA') ;  % make into an undirected graph adjacency matrix
-        eoutprun = graphfuncs.buildgraph(inupdate_A) ;
+        eoutprun = rooted_spanning_tree_edges_from_graph(inupdate_A) ;
         component_size = max(eoutprun(:));
         dA_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else
@@ -79,6 +79,7 @@ function process_single_component(output_folder_path, ...
         gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z],'LineWidth',3);
         drawnow
     end
+    
     %%
     if length(dA_struct.X)<size_threshold
         fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
@@ -87,19 +88,21 @@ function process_single_component(output_folder_path, ...
                 length(dA_struct.dA)) ;
         return
     end
+    
     %%
-    swc_struct_smoothed = smoothtree(dA_struct,options);
+    dA_struct_smoothed = smooth_tree(dA_struct, size_threshold);
+    if do_visualize
+        hold on
+        gplot3(dA_struct_smoothed.dA,[dA_struct_smoothed.X,dA_struct_smoothed.Y,dA_struct_smoothed.Z],'LineWidth',3, 'Color', 'm');
+        drawnow
+    end        
+    
     %%
-    % [L,list] = getBranches(inupdate_smoothed.dA);
-%     if 0
-%         outtree = inupdate_smoothed;
-%     else
-        % outtree_old = downSampleTree(inupdate_smoothed,opt);
-    outtree_in_voxels = sampleTree(swc_struct_smoothed, options) ;
+    outtree_in_voxels = sample_tree(dA_struct_smoothed, voxres, sampling_style, sampling_interval, length_threshold, largesampling) ;
     outtree_in_voxels.units = 'voxels' ;
     if do_visualize
         cla
-        gplot3(swc_struct_smoothed.dA,[swc_struct_smoothed.X,swc_struct_smoothed.Y,swc_struct_smoothed.Z],'LineWidth',3);
+        gplot3(dA_struct_smoothed.dA,[dA_struct_smoothed.X,dA_struct_smoothed.Y,dA_struct_smoothed.Z],'LineWidth',3);
         hold on
         gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
         drawnow
@@ -124,5 +127,5 @@ function process_single_component(output_folder_path, ...
     tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
     
     % Write full tree as a .mat file
-    save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+    %save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
 end

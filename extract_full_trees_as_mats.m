@@ -1,4 +1,4 @@
-function workflow1_full_trees_only_as_mats(options)
+function extract_full_trees_as_mats(options)
     % Extract parameters from options
     whole_brain_h5_p_map_file_path = options.whole_brain_h5_p_map_file_path ;
     %whole_brain_h5_p_map_dataset_path = options.whole_brain_h5_p_map_dataset_path ;
@@ -6,19 +6,19 @@ function workflow1_full_trees_only_as_mats(options)
     
     %brainSize = h5parser(whole_brain_h5_p_map_file_path, whole_brain_h5_p_map_dataset_path) ;
 
-    origin = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/origin']) ;
-    spacing = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/spacing']) ;
+    origin_in_nm = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/origin']) ;
+    top_level_spacing_in_nm = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/spacing']) ;
     levels_below_top_level = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/level']) ;
     %params.outsiz = brainSize ;
-    ox = origin(1) ;
-    oy = origin(2) ;
-    oz = origin(3) ;
-    sx = spacing(1) ;
-    sy = spacing(2) ;
-    sz = spacing(3) ;
+%     ox = origin_in_nm(1) ;
+%     oy = origin_in_nm(2) ;
+%     oz = origin_in_nm(3) ;
+    sx = top_level_spacing_in_nm(1) ;
+    sy = top_level_spacing_in_nm(2) ;
+    sz = top_level_spacing_in_nm(3) ;
     %params.level = levels_below_top_level ;
     
-    voxres = [sx sy sz]/2^(levels_below_top_level)/1e3 ; % in um
+    voxres = [sx sy sz]/2^(levels_below_top_level)/1e3 ;  % in um, at highest zoom level
     %options.params = params ;   
     
     % Break out the options structure
@@ -29,12 +29,14 @@ function workflow1_full_trees_only_as_mats(options)
     length_threshold = options.lengthThr ;
     do_visualize = options.viz ;
     maximum_core_count_desired = options.maximum_core_count_desired ;
-
+    do_force_computations = options.do_force_computations ;
+    do_all_computations_serially = options.do_all_computations_serially ;
+    
     % Break out the 'params'
-    origin_in_nm = [ox oy oz] ;  % nm
-    top_level_spacing = [sx sy sz] ;
+    %origin_in_nm = [ox oy oz] ;  % nm
+    %top_level_spacing_in_nm = [sx sy sz] ;
     %levels_below_top_level = params.level ;
-    spacing_in_nm = top_level_spacing / 2^levels_below_top_level ;
+    spacing_in_nm = top_level_spacing_in_nm / 2^levels_below_top_level ;
     %voxres = params.voxres ;
 
     % Create the output folder, if needed
@@ -50,7 +52,7 @@ function workflow1_full_trees_only_as_mats(options)
     %node_count = height(G.Nodes) ;
     %[components, size_from_component_id] = conncomp(G,'OutputForm','cell') ;  % cell array, each element a 1d array of node ids in G
     fractionated_components_file_path = fullfile(output_folder_path, 'fractionated_components.mat') ;
-    if exist(fractionated_components_file_path, 'file') && ~options.do_force_computations ,
+    if exist(fractionated_components_file_path, 'file') && ~do_force_computations ,
         load(fractionated_components_file_path, 'component_from_component_id', 'size_from_component_id', 'maximum_component_size') ;  %#ok<NASGU>
     else
         %maximum_component_size = inf ;
@@ -108,7 +110,7 @@ function workflow1_full_trees_only_as_mats(options)
     fprintf('Filtering out components for which output already exists...\n') ;
     progress_bar = progress_bar_object(components_to_process_count) ;
     does_output_exist_from_processing_index = false(1, components_to_process_count) ;
-    if options.do_force_computations ,
+    if do_force_computations ,
         progress_bar.update(components_to_process_count) ;
     else
         digits_needed_for_index = floor(log10(component_count)) + 1 ;
@@ -130,7 +132,7 @@ function workflow1_full_trees_only_as_mats(options)
     % Figure out how many components are 'big', we'll do those one at a
     % time so as not to run out of memory   
     big_component_threshold = 1e4 ;
-    if options.do_all_computations_serially ,
+    if do_all_computations_serially ,
         do_process_serially_from_will_process_index = true(size(component_id_from_will_process_index)) ;
     else
         component_size_from_will_process_index = size_from_component_id(component_id_from_will_process_index) ;

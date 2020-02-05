@@ -1,4 +1,4 @@
-function [branch,list] = getBranches(dA, rootnode)
+function [branch,list] = getBranchesOld(dA, rootnode)
 %GETBRANCHES Given directed adjacency matrix dA, returns list of branch segments
 % 
 % [OUTPUTARGS] = GETBRANCHES(INPUTARGS) Explain usage here
@@ -34,7 +34,7 @@ termnodes = find(sum(dA)==0);
 criticalset = [rootnode, branchnodes, termnodes];
 
 % get pred
-[DISC,PRED,CLOSE] = graphtraverse(dA',rootnode,'DIRECTED',true);
+[~,PRED,~] = graphtraverse(dA',rootnode,'DIRECTED',true);
 %[DIST2,PATH2,PRED2] = graphshortestpath(G',rootnode,'DIRECTED',true);
 
 %%
@@ -48,12 +48,12 @@ for idx = criticalset
     set = idx;
     next = PRED(idx);
     while next
-        set = [set next];
+        set = [set next];  %#ok<AGROW>
         next = criticfalPRED(next);
     end
     iter = iter+1;
-    branch(iter).set = set(1:end-1); % exclude the parent critical point
-    branch(iter).parentnode = set(end);
+    branch(iter).set = set(1:end-1); %#ok<AGROW> % exclude the parent critical point
+    branch(iter).parentnode = set(end); %#ok<AGROW>
     if isempty(branch(iter).set)
         list(idx) = iter; % root node
     else
@@ -67,27 +67,3 @@ end
 %%
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

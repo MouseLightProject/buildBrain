@@ -1,4 +1,4 @@
-function [intree] = smoothtree(intree,opt)
+function [intree] = smoothtree(intree, sizethreshold)
 %SMOOTHTREE Summary of this function goes here
 %
 % [OUTPUTARGS] = SMOOTHTREE(INPUTARGS) Explain usage here
@@ -29,12 +29,12 @@ for ii=1:length(L)
     xyz = XYZ(set_ii,:);
     for jj=3 % only on z
         X = xyz(:,jj);
-        XYZ(set_ii,jj) = medfilt1(medfilt1(X,opt.sizethreshold),opt.sizethreshold);
+        XYZ(set_ii,jj) = medfilt1(medfilt1(X, sizethreshold), sizethreshold);
     end
     intree.Z(set_ii) = XYZ(set_ii,jj);
     % smooth radius
     if 0
-        R(set_ii) = medfilt1(medfilt1(R(set_ii),opt.sizethreshold),opt.sizethreshold);
+        R(set_ii) = medfilt1(medfilt1(R(set_ii), sizethreshold), sizethreshold);
     end
 end
 end
