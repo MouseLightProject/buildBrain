@@ -1,2 +1,2 @@
-close all
+close all 
 clear
