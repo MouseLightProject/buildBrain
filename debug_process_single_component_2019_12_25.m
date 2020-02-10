@@ -61,12 +61,13 @@ levels_below_top_level = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_
 %     ox = origin_in_nm(1) ;
 %     oy = origin_in_nm(2) ;
 %     oz = origin_in_nm(3) ;
-sx = top_level_spacing_in_nm(1) ;
-sy = top_level_spacing_in_nm(2) ;
-sz = top_level_spacing_in_nm(3) ;
+% sx = top_level_spacing_in_nm(1) ;
+% sy = top_level_spacing_in_nm(2) ;
+% sz = top_level_spacing_in_nm(3) ;
 %params.level = levels_below_top_level ;
 
-voxres = [sx sy sz]/2^(levels_below_top_level)/1e3 ;  % in um, at highest zoom level
+spacing_at_full_zoom = top_level_spacing_in_nm/2^(levels_below_top_level)/1e3 ;  % in um, at highest zoom level
+spacing_in_nm = top_level_spacing_in_nm / 2^levels_below_top_level ;
 %options.params = params ;   
 
 % Break out the options structure
@@ -89,7 +90,6 @@ largesampling = options.largesampling ;
 %origin_in_nm = [ox oy oz] ;  % nm
 %top_level_spacing_in_nm = [sx sy sz] ;
 %levels_below_top_level = params.level ;
-spacing_in_nm = top_level_spacing_in_nm / 2^levels_below_top_level ;
 %voxres = params.voxres ;
 
 % Create the output folder, if needed
@@ -171,7 +171,7 @@ for process_serially_index = 1 : components_to_process_serially_count ,
                              do_visualize, ...
                              origin_in_nm, ...
                              spacing_in_nm, ...
-                             voxres, ...
+                             spacing_at_full_zoom, ...
                              sampling_style, ...
                              sampling_interval, ...
                              largesampling) ;

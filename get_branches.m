@@ -25,10 +25,10 @@ function [branches_struct, branch_id_from_node_id] = get_branches(dA)
     % root node.  The parent_node_id of the root branch is 0 by convention,
     % and the parent_branch_id is 0 also.
 
-    % For debugging
-    G = digraph(dA) ;
-    figure() ;
-    plot(G) ;
+%     % For debugging
+%     G = digraph(dA) ;
+%     figure() ;
+%     plot(G) ;
 
     % Get the node count
     node_count = size(dA,1) ;

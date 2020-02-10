@@ -22,7 +22,7 @@ function [intree] = smooth_tree(intree, sizethreshold)
     D = intree.D;
 
     for ii=1:length(L)
-        set_ii = L(ii).set(2:end-1);
+        set_ii = L(ii).node_ids(2:end-1);
         if isempty(set_ii)
             continue
         end
