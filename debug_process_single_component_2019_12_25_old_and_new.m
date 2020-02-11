@@ -27,7 +27,7 @@ options.length_threshold = 10 ;
 options.largesampling = 200 ;
 % sampling options are 'uni' [default] for uniform sampling (for 3D) and 'curv' for curvature weighted sampling (for 2D)
 options.sampling_style = 'uni' ;  % 'uni' or 'curv'
-options.sampling_interval = 5 ;  % keep every this many nodes when downsampling trees
+options.sampling_interval = 5 ;  % um, keep every this many nodes when downsampling trees
 
 %post segmentation parameters
 options.tag = '' ;
@@ -85,3 +85,5 @@ forest_of_named_trees = named_trees_from_options(skeleton_graph, ...
                                                  size_from_component_id, ...
                                                  options, ...
                                                  params)
+
+                                             

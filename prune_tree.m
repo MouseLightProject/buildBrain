@@ -21,7 +21,7 @@ function [output_dA_struct, did_prune_some] = prune_tree_some(input_dA_struct, l
     xyz = (ijk1-1) .* spacing ;  % these are relative to the origin, but we only use them for edge length computations
     %xyz = [input_dA_struct.X*spacing(1) input_dA_struct.Y*spacing(2) input_dA_struct.Z*spacing(3)];  % um
     branches = get_branches(dA) ;
-    branches_check = getBranchesOld(dA) ;
+    %branches_check = getBranchesOld(dA) ;
     branch_count = length(branches);
     % find leaf branches
     in_degree_from_node_id = sum(dA,1) ;

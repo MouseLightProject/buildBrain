@@ -1,4 +1,4 @@
-function [intree] = smooth_tree(intree, sizethreshold)
+function result = smooth_tree(tree_as_dA_struct, filter_width)
     %SMOOTHTREE Summary of this function goes here
     %
     % [OUTPUTARGS] = SMOOTHTREE(INPUTARGS) Explain usage here
@@ -15,26 +15,28 @@ function [intree] = smooth_tree(intree, sizethreshold)
 
     % $Author: base $	$Date: 2016/03/29 10:17:20 $	$Revision: 0.1 $
     % Copyright: HHMI 2016
-    [L,list] = get_branches(intree.dA);
+    
+    branches = get_branches(tree_as_dA_struct.dA);
 
-    XYZ = [intree.X intree.Y intree.Z];
-    R = intree.R;
-    D = intree.D;
+    xyz_from_node_id = [tree_as_dA_struct.X tree_as_dA_struct.Y tree_as_dA_struct.Z];
+    %R = result.R;
+    %D = result.D;
 
-    for ii=1:length(L)
-        set_ii = L(ii).node_ids(2:end-1);
-        if isempty(set_ii)
+    for branch_index = 1:length(branches) ,
+        this_branch = branches(branch_index) ;        
+        node_ids = this_branch.node_ids ;
+        working_node_ids = node_ids(2:end-1) ;
+        if isempty(working_node_ids)
             continue
         end
-        xyz = XYZ(set_ii,:);
-        for jj=3 % only on z
-            X = xyz(:,jj);
-            XYZ(set_ii,jj) = medfilt1(medfilt1(X, sizethreshold), sizethreshold);
-        end
-        intree.Z(set_ii) = XYZ(set_ii,jj);
-        % smooth radius
-        if 0
-            R(set_ii) = medfilt1(medfilt1(R(set_ii), sizethreshold), sizethreshold);
-        end
+        z_for_this_branch = xyz_from_node_id(working_node_ids,3) ;
+        new_z_for_this_branch = medfilt1(medfilt1(z_for_this_branch, filter_width), filter_width) ;        
+        xyz_from_node_id(working_node_ids,3) = new_z_for_this_branch ;
     end
+
+    % Sub in the modified z coords to the result
+    result = tree_as_dA_struct ;
+    result.X = xyz_from_node_id(:,1) ;
+    result.Y = xyz_from_node_id(:,2) ;
+    result.Z = xyz_from_node_id(:,3) ;
 end
