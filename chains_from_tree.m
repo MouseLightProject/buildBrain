@@ -9,6 +9,11 @@ function node_ids_from_chain_id = chains_from_tree(A)
 %     figure() ;
 %     plot(G) ;
 
+    if isempty(A) ,
+        node_ids_from_chain_id = cell(1,0) ;
+        return
+    end
+
     % Get a rooted directed tree from the undirected tree
     % The 'root' node will basically be a random leaf, which is what we
     % want.

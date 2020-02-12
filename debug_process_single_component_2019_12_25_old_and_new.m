@@ -86,7 +86,9 @@ forest_of_named_trees = named_trees_from_options(skeleton_graph, ...
                                                  options, ...
                                                  params)
 
-for i = 1 : length(forest_of_named_trees_old) ,
+%for i = 1 : length(forest_of_named_trees_old) ,
+%for i = 1 : length(forest_of_named_trees_old)/5 ,
+for i = 1  ,
     old_named_tree = forest_of_named_trees_old(i) ;
     old_dA = dA_from_named_tree(old_named_tree) ;
     old_xyz = old_named_tree.xyz ;

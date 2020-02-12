@@ -20,4 +20,7 @@ function result = um_from_voxels(r_in_voxels, origin_in_nm, spacing_in_nm)
     r_in_um_relative_to_origin = bsxfun(@times, r_in_voxels_shifted, spacing_in_um) ;
     result = bsxfun(@plus, r_in_um_relative_to_origin, origin_in_um) ;
     %result = r_in_voxels .* (ones(size(r_in_voxels,1),1)*spacing_in_um) + ones(size(r_in_voxels,1),1)*origin_in_um ;
+    %result_check = origin_in_um + spacing_in_um .* (r_in_voxels - 0.5) ;
+    %   result_check always matches result
+    %assert(isequal(result, result_check)) ;
 end

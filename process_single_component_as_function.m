@@ -2,7 +2,7 @@ function named_tree = process_single_component_as_function(component_id, ...
                                                            component_count, ...
                                                            A_for_component, ...
                                                            xyz_for_component, ...
-                                                           size_threshold, ...
+                                                           smoothing_filter_width, ...
                                                            length_threshold, ...
                                                            do_visualize, ...
                                                            sampling_interval)
@@ -36,10 +36,30 @@ function named_tree = process_single_component_as_function(component_id, ...
 %         return
 %     end
 
-    % Used to do smoothing here
+    % Decompose tree into chains
+    pruned_node_ids_from_chain_id = chains_from_tree(A_pruned) ;
+
+    % Smooth the z coords of chain nodes
+    xyz_smoothed = smooth_chains(pruned_node_ids_from_chain_id, xyz_pruned, smoothing_filter_width) ;
     
     %%
-    [A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;
+    %[A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;    
+        
+    % Decimate chains
+    decimated_node_ids_from_chain_id = decimate_chains(pruned_node_ids_from_chain_id, xyz_smoothed, sampling_interval) ;
+
+    % Convert chains to edges
+    edges_using_decimated_node_ids = edges_from_chains(decimated_node_ids_from_chain_id) ;
+
+    % Defragment the node ids
+    [edges_using_decimated_node_ids, xyz_decimated, pruned_node_id_from_decimated_node_id] = ...
+        defragment_node_ids_in_edges(edges_using_decimated_node_ids, xyz_smoothed) ;
+
+    % Convert edges to (sparse) adjacency
+    decimated_node_count = length(pruned_node_id_from_decimated_node_id) ;
+    A_decimated = undirected_adjacency_from_edges(edges_using_decimated_node_ids, decimated_node_count) ;    
+    
+    % Visualize the decimated tree
     if do_visualize
         hold on
         gplot3(A_decimated, xyz_decimated, '--', 'LineWidth', 3) ;
