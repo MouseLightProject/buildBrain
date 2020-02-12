@@ -5,7 +5,7 @@ function result = is_component_a_chain(A)
     % A must represent a *connected* graph, otherwise this test is not
     % reliable.
     
-    if is_tree(A) ,
+    if is_component_a_tree(A) ,
         degree = full(sum(A)) ;
         result = all(degree<=2) ;
     else

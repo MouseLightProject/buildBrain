@@ -1,123 +1,56 @@
 function named_tree = process_single_component_as_function(component_id, ...
-                                                           component, ...
                                                            component_count, ...
                                                            A_for_component, ...
-                                                           ijks_for_component, ...
+                                                           xyz_for_component, ...
                                                            size_threshold, ...
                                                            length_threshold, ...
                                                            do_visualize, ...
-                                                           origin_in_nm, ...
-                                                           spacing_in_nm, ...
-                                                           spacing_at_full_zoom, ...
                                                            sampling_interval)
-    component_size= length(component) ;
-    
-%     if ismember(component_id, [22361 26417 28631]) ,
-%         do_visualize = true ;
-%     end    
-    
-    % Output some info
-    %fprintf('Processing component with id %d, size is %d nodes...\n', component_id, component_size) ;
-    
-%     % Get the graph for this component
-%     A_for_component = G_for_component.adjacency ;
 
-%     if ~is_component_a_binary_tree(A_for_component) ,
-%         do_visualize = true ;
-%         keyboard
-%     end
+    % Get a spanning tree
+    dA_spanning = spanning_tree_adjacency_from_graph_adjacency(A_for_component) ;
+    A_spanning = max(dA_spanning, dA_spanning') ;
     
-    % Do something
-    % profile clear
-    % profile -memory on
-    child_parent_node_id_pairs = rooted_spanning_tree_edges_from_graph(A_for_component) ;
-    % profile off
-    
-    % Package things up into an "SWC structure".
-    % dA: directed adjacency graph.  A sparse matrix that represents the
-    % directed edges that point from a node to the next node soma-ward (or,
-    % more generally, rootward).
-    % D: node descriptor.  This will become the 2nd column of the SWC, the
-    % "structure identifier".  Used for different things in different
-    % places.
-    % R: The radius as the node, in um.  We basically don't use this, so it's
-    % often just set to all ones for convenience.
-    % X,Y,Z: The coordinates of each node, ideally in um, but sometimes we
-    % have them in voxel indices.
-    dA_struct.dA = sparse(child_parent_node_id_pairs(:,1),child_parent_node_id_pairs(:,2),1,component_size,component_size);
-    dA_struct.D = ones(component_size,1);
-    dA_struct.R = ones(component_size,1);
-    dA_struct.X = ijks_for_component(:,1);
-    dA_struct.Y = ijks_for_component(:,2);
-    dA_struct.Z = ijks_for_component(:,3);
-
     if do_visualize
         figure() ;
-        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
+        gplot3(A_spanning, xyz_for_component) ;
         title(sprintf('Component %d', component_id)) ;
         drawnow
     end
     
     %%
-    dA_struct = prune_tree(dA_struct, length_threshold, spacing_at_full_zoom, do_visualize) ;    
-    
-    %%
-    % shuffle root to one of the leafs for efficiency and not
-    % splitting long stretches into half
-    if size(dA_struct.dA,1)>1
-        inupdate_A = max(dA_struct.dA, dA_struct.dA') ;  % make into an undirected graph adjacency matrix
-        eoutprun = rooted_spanning_tree_edges_from_graph(inupdate_A) ;
-        component_size = max(eoutprun(:));
-        dA_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
-    else
-    end
+    [A_pruned, xyz_pruned] = prune_tree(A_spanning, xyz_for_component, length_threshold, do_visualize) ;    
     if do_visualize
         hold on
-        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z],'LineWidth',3);
+        gplot3(A_pruned, xyz_pruned, 'LineWidth', 3) ;
         drawnow
     end
     
-    %%
-    if length(dA_struct.X)<size_threshold
-        fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
-                component_id, ...
-                size_threshold, ...
-                length(dA_struct.dA)) ;
-        return
-    end
-    
-    %%
-    dA_struct_smoothed = smooth_tree(dA_struct, size_threshold);
-    if do_visualize
-        hold on
-        gplot3(dA_struct_smoothed.dA,[dA_struct_smoothed.X,dA_struct_smoothed.Y,dA_struct_smoothed.Z],'LineWidth',3, 'Color', 'm');
-        drawnow
-    end        
-    
-    %%
-    outtree_in_voxels = sample_tree(dA_struct_smoothed, spacing_at_full_zoom, sampling_interval) ;
-    outtree_in_voxels.units = 'voxels' ;
-    if do_visualize
-        cla
-        gplot3(dA_struct_smoothed.dA,[dA_struct_smoothed.X,dA_struct_smoothed.Y,dA_struct_smoothed.Z],'LineWidth',3);
-        hold on
-        gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
-        drawnow
-    end        
+%     %%
+%     pruned_node_count = size(xyz_pruned, 1) ;    
+%     if pruned_node_count<size_threshold ,
+%         fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
+%                 component_id, ...
+%                 size_threshold, ...
+%                 pruned_node_count) ;
+%         return
+%     end
 
-%     % Check for an off-by-one shift
-%     tree_ijks = [outtree_in_voxels.X outtree_in_voxels.Y outtree_in_voxels.Z] ;
-%     is_tree_point_a_skeleton_point_from_ijk = is_point_drawn_from_pool(tree_ijks, ijks_for_component, [1 1 1]) ;
-%     fraction_of_tree_points_that_match_skeleton_points = mean(is_tree_point_a_skeleton_point_from_ijk) ;
+    % Used to do smoothing here
     
-    % Convert centerpoint from voxel coords to um
-    outtree = convert_centerpoint_units_to_um(outtree_in_voxels, origin_in_nm, spacing_in_nm) ;
+    %%
+    [A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;
+    if do_visualize
+        hold on
+        gplot3(A_decimated, xyz_decimated, '--', 'LineWidth', 3) ;
+        drawnow
+    end
 
     % Convert to a named tree
     digits_needed_for_index = floor(log10(component_count)) + 1 ;
     tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'
     tree_name = sprintf(tree_name_template, component_id) ;
-    named_tree = named_tree_from_tree_as_dA_struct(outtree, tree_name) ;    
+    named_tree = named_tree_from_undirected_graph(A_decimated, xyz_decimated, tree_name) ;    
     
 %     % Compute the output file path
 %     tree_mat_file_name = sprintf('%s.mat', tree_name) ;

@@ -23,7 +23,7 @@ options.fullh = 15 ;
 
 %    length_threshold = 10;% (um) lengthThr for each leaf branch to decide to prune
 %    largesampling = 200;%(um) make it more sparse for larger segments
-options.length_threshold = 10 ;
+options.length_threshold = 10 ;  % um, leaf chains shorter than this are pruned off
 options.largesampling = 200 ;
 % sampling options are 'uni' [default] for uniform sampling (for 3D) and 'curv' for curvature weighted sampling (for 2D)
 options.sampling_style = 'uni' ;  % 'uni' or 'curv'
@@ -56,7 +56,7 @@ params.sy = top_level_spacing_in_nm(2) ;
 params.sz = top_level_spacing_in_nm(3) ;
 params.level = levels_below_top_level ;
 
-params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3 ; % in um
+params.voxres = [params.sx params.sy params.sz]/2^(params.level)/1e3 ;  % in um
 
 
 
@@ -86,4 +86,18 @@ forest_of_named_trees = named_trees_from_options(skeleton_graph, ...
                                                  options, ...
                                                  params)
 
-                                             
+for i = 1 : length(forest_of_named_trees_old) ,
+    old_named_tree = forest_of_named_trees_old(i) ;
+    old_dA = dA_from_named_tree(old_named_tree) ;
+    old_xyz = old_named_tree.xyz ;
+    
+    new_named_tree = forest_of_named_trees(i) ;
+    new_dA = dA_from_named_tree(new_named_tree) ;
+    new_xyz = new_named_tree.xyz ;
+    
+    figure() ;
+    gplot3(old_dA, old_xyz, 'Color', 'b') ;
+    title(old_named_tree.name) ;
+    hold on
+    gplot3(new_dA, new_xyz, 'Color', 'r') ;
+end
