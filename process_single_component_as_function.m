@@ -1,5 +1,5 @@
 function named_tree = process_single_component_as_function(component_id, ...
-                                                           component_count, ...
+                                                           max_component_id, ...
                                                            A_for_component, ...
                                                            xyz_for_component, ...
                                                            smoothing_filter_width, ...
@@ -7,22 +7,28 @@ function named_tree = process_single_component_as_function(component_id, ...
                                                            do_visualize, ...
                                                            sampling_interval)
 
+    % Plot the input                                                       
+    if do_visualize ,
+        f = figure('Color', 'w') ;
+        ax = axes(f) ;
+        l0 = gplot3(ax, A_for_component, xyz_for_component, 'b') ;  % blue
+        hold(ax, 'on') ;
+        drawnow
+    end
+                                                       
     % Get a spanning tree
     dA_spanning = spanning_tree_adjacency_from_graph_adjacency(A_for_component) ;
     A_spanning = max(dA_spanning, dA_spanning') ;
     
     if do_visualize
-        figure() ;
-        gplot3(A_spanning, xyz_for_component) ;
-        title(sprintf('Component %d', component_id)) ;
+        l1 = gplot3(ax, A_spanning, xyz_for_component, 'Color', [0 0.5 0]) ;   % green
         drawnow
     end
     
     %%
     [A_pruned, xyz_pruned] = prune_tree(A_spanning, xyz_for_component, length_threshold, do_visualize) ;    
     if do_visualize
-        hold on
-        gplot3(A_pruned, xyz_pruned, 'LineWidth', 3) ;
+        l2 = gplot3(ax, A_pruned, xyz_pruned, 'r') ;  % red
         drawnow
     end
     
@@ -41,13 +47,21 @@ function named_tree = process_single_component_as_function(component_id, ...
 
     % Smooth the z coords of chain nodes
     xyz_smoothed = smooth_chains(pruned_node_ids_from_chain_id, xyz_pruned, smoothing_filter_width) ;
+    %xyz_smoothed = xyz_pruned ;
+
+    % Visualize the smoothed tree
+    if do_visualize        
+        l3 = gplot3(ax, A_pruned, xyz_smoothed, 'Color', [1 2/3 0]) ;   % orange
+        drawnow
+    end  
     
     %%
     %[A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;    
         
     % Decimate chains
     decimated_node_ids_from_chain_id = decimate_chains(pruned_node_ids_from_chain_id, xyz_smoothed, sampling_interval) ;
-
+    %decimated_node_ids_from_chain_id = pruned_node_ids_from_chain_id ;
+    
     % Convert chains to edges
     edges_using_decimated_node_ids = edges_from_chains(decimated_node_ids_from_chain_id) ;
 
@@ -61,13 +75,18 @@ function named_tree = process_single_component_as_function(component_id, ...
     
     % Visualize the decimated tree
     if do_visualize
-        hold on
-        gplot3(A_decimated, xyz_decimated, '--', 'LineWidth', 3) ;
+        l4 = gplot3(ax, A_decimated, xyz_decimated, 'Color', [0.6 0 0.8]) ;   % purple
+        legend([l0 l1 l2 l3 l4], {'original', 'tree', 'pruned', 'smoothed', 'decimated'}) ;        
+        axis(ax, 'vis3d') ;
+        title(ax, sprintf('Component %d', component_id)) ;
+        xlabel(ax, 'x (um)') ;
+        ylabel(ax, 'y (um)') ;
+        zlabel(ax, 'z (um)') ;                
         drawnow
     end
 
     % Convert to a named tree
-    digits_needed_for_index = floor(log10(component_count)) + 1 ;
+    digits_needed_for_index = floor(log10(max_component_id)) + 1 ;
     tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'
     tree_name = sprintf(tree_name_template, component_id) ;
     named_tree = named_tree_from_undirected_graph(A_decimated, xyz_decimated, tree_name) ;    

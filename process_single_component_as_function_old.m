@@ -1,6 +1,6 @@
 function named_tree = process_single_component_as_function_old(component_id, ...
                                                            component, ...
-                                                           component_count, ...
+                                                           max_component_id, ...
                                                            A_for_component, ...
                                                            ijks_for_component, ...
                                                            size_threshold, ...
@@ -12,6 +12,15 @@ function named_tree = process_single_component_as_function_old(component_id, ...
                                                            options, ...
                                                            params)
     component_size= length(component) ;
+    
+    % Plot the input                                                       
+    if do_visualize ,
+        f = figure('Color', 'w') ;
+        ax = axes(f) ;
+        l0 = gplot3(ax, A_for_component, ijks_for_component, 'b') ;  % blue
+        hold(ax, 'on') ;
+        drawnow
+    end                                                      
     
 %     if ismember(component_id, [22361 26417 28631]) ,
 %         do_visualize = true ;
@@ -48,21 +57,26 @@ function named_tree = process_single_component_as_function_old(component_id, ...
     dA_struct.Z = ijks_for_component(:,3);
 
     if do_visualize
-        figure() ;
-        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
-        title(sprintf('Component %d', component_id)) ;
+        l1 = gplot3(ax, dA_struct.dA, [dA_struct.X,dA_struct.Y,dA_struct.Z], 'Color', [0 0.5 0]) ;   % green
         drawnow
-    end
+    end    
+    
+%     if do_visualize
+%         figure() ;
+%         gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
+%         title(sprintf('Component %d', component_id)) ;
+%         drawnow
+%     end
     
     %%
     did_prune_some = true ;  % just to get prune_tree() to be called at least once
     while did_prune_some ,
         [dA_struct, did_prune_some] = prune_tree_old(dA_struct, length_threshold, voxres) ;
-        if do_visualize
-            hold on
-            gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
-            drawnow
-        end
+%         if do_visualize
+%             hold on
+%             gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z]);
+%             drawnow
+%         end
     end
     %%
     % shuffle root to one of the leafs for efficiency and not
@@ -74,11 +88,17 @@ function named_tree = process_single_component_as_function_old(component_id, ...
         dA_struct.dA = sparse(eoutprun(:,1),eoutprun(:,2),1,component_size,component_size);
     else
     end
+%     if do_visualize
+%         hold on
+%         gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z],'LineWidth',3);
+%         drawnow
+%     end
+    
     if do_visualize
-        hold on
-        gplot3(dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z],'LineWidth',3);
+        l2 = gplot3(ax, dA_struct.dA,[dA_struct.X,dA_struct.Y,dA_struct.Z], 'r') ;  % red
         drawnow
     end
+    
     %%
     if length(dA_struct.X)<size_threshold
         fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
@@ -88,7 +108,15 @@ function named_tree = process_single_component_as_function_old(component_id, ...
         return
     end
     %%
-    swc_struct_smoothed = smoothtree_old(dA_struct,options);
+    swc_struct_smoothed = smoothtree_old(dA_struct,options) ;        
+    %swc_struct_smoothed = dA_struct ;    
+    
+    % Visualize the smoothed tree
+    if do_visualize        
+        l3 = gplot3(ax, swc_struct_smoothed.dA,[swc_struct_smoothed.X,swc_struct_smoothed.Y,swc_struct_smoothed.Z], 'Color', [1 2/3 0]) ;   % orange
+        drawnow
+    end  
+    
     %%
     % [L,list] = getBranches(inupdate_smoothed.dA);
 %     if 0
@@ -96,15 +124,28 @@ function named_tree = process_single_component_as_function_old(component_id, ...
 %     else
         % outtree_old = downSampleTree(inupdate_smoothed,opt);
     outtree_in_voxels = sampleTree_old(swc_struct_smoothed, options, params) ;
+    %outtree_in_voxels = swc_struct_smoothed ;
     outtree_in_voxels.units = 'voxels' ;
-    if do_visualize
-        cla
-        gplot3(swc_struct_smoothed.dA,[swc_struct_smoothed.X,swc_struct_smoothed.Y,swc_struct_smoothed.Z],'LineWidth',3);
-        hold on
-        gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
-        drawnow
-    end        
+%     if do_visualize
+%         cla
+%         gplot3(swc_struct_smoothed.dA,[swc_struct_smoothed.X,swc_struct_smoothed.Y,swc_struct_smoothed.Z],'LineWidth',3);
+%         hold on
+%         gplot3(outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z],'--','LineWidth',3);
+%         drawnow
+%     end        
 
+    % Visualize the decimated tree
+    if do_visualize
+        l4 = gplot3(ax, outtree_in_voxels.dA,[outtree_in_voxels.X,outtree_in_voxels.Y,outtree_in_voxels.Z], 'Color', [0.6 0 0.8]) ;   % purple
+        legend([l0 l1 l2 l3 l4], {'original', 'tree', 'pruned', 'smoothed', 'decimated'}) ;        
+        axis(ax, 'vis3d') ;
+        title(ax, sprintf('Component %d', component_id)) ;
+        xlabel(ax, 'x (um)') ;
+        ylabel(ax, 'y (um)') ;
+        zlabel(ax, 'z (um)') ;                
+        drawnow
+    end
+    
 %     % Check for an off-by-one shift
 %     tree_ijks = [outtree_in_voxels.X outtree_in_voxels.Y outtree_in_voxels.Z] ;
 %     is_tree_point_a_skeleton_point_from_ijk = is_point_drawn_from_pool(tree_ijks, ijks_for_component, [1 1 1]) ;
@@ -114,7 +155,7 @@ function named_tree = process_single_component_as_function_old(component_id, ...
     outtree = convert_centerpoint_units_to_um(outtree_in_voxels, origin_in_nm, spacing_in_nm) ;
 
     % Convert to a named tree
-    digits_needed_for_index = floor(log10(component_count)) + 1 ;
+    digits_needed_for_index = floor(log10(max_component_id)) + 1 ;
     tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'
     tree_name = sprintf(tree_name_template, component_id) ;
     named_tree = named_tree_from_tree_as_dA_struct(outtree, tree_name) ;    

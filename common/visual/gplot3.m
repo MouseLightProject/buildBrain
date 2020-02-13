@@ -1,26 +1,43 @@
-function h = gplot3(A, xyz, varargin)
-%GPLOT Plot graph (nodes and edges).
-%   GPLOT(A, xyz) plots the graph specified by the adjacency matrix,
-%   A, and the n-by-3 coordinate array, xyz.
-%   
-%   GPLOT(A, xyz, linespec) uses line type and color specified in the
-%   string LineSpec. See PLOT for possibilities.
-%
-%   h = GPLOT(A, xyz) returns the a handle to the graph.
-%   
-%   h = GPLOT(A, xyz, 'LineWidth', 5, ...) also takes arbitrary arguments
-%   for line properties
-bbox = [];
-    % If no arguments given, then run buckminster sphere example
-    if nargin == 0
-        [A, xyz] = bucky;
+function h = gplot3(varargin)
+%function h = gplot3(A, xyz, varargin)
+    %GPLOT Plot graph (nodes and edges).
+    %   GPLOT(A, xyz) plots the graph specified by the adjacency matrix,
+    %   A, and the n-by-3 coordinate array, xyz.
+    %   
+    %   GPLOT(A, xyz, linespec) uses line type and color specified in the
+    %   string LineSpec. See PLOT for possibilities.
+    %
+    %   h = GPLOT(A, xyz) returns the a handle to the graph.
+    %   
+    %   h = GPLOT(A, xyz, 'LineWidth', 5, ...) also takes arbitrary arguments
+    %   for line properties
+    
+    remaining_args = varargin ;
+    
+    if length(remaining_args)>=1 ,
+        arg = remaining_args{1} ;
+        if isgraphics(arg, 'axes') ,
+            ax = arg ;
+            remaining_args = remaining_args(2:end) ;
+        else
+            ax = gca() ;
+        end
+    end       
+    
+    if length(remaining_args)>=1 ,
+        A = remaining_args{1} ;
+        remaining_args = remaining_args(2:end) ;
+    else
+        error('Need an adjacency matrix') ;
     end
 
-    % If only one argument given, throw error.
-    if nargin == 1
-        error('Please provide an adjacency matrix and coordinate array');
+    if length(remaining_args)>=1 ,
+        xyz = remaining_args{1} ;
+        remaining_args = remaining_args(2:end) ;
+    else
+        error('Need coordinate matrix') ;
     end
-
+    
     % Returns i and j, lists of connected nodes
     [i,j] = find(A);
 
@@ -34,43 +51,26 @@ bbox = [];
     Y = [Y; NaN(size(i))'];
     Z = [Z; NaN(size(i))'];
 
-    % Filter
-    if ~isempty(bbox)
-        bbox = [20066+[-100 100] 10298+[-100 100] 2959+[-100 100]];
-        it = X>bbox(1)&X<bbox(2)&Y>bbox(3)&Y<bbox(4)&Z>bbox(5)&Z<bbox(6);
-        it = all(it);
-        X = X(:,it);
-        Y = Y(:,it);
-        Z = Z(:,it);
-    end
-    
     % Serialize the x and y data
     X = X(:);
     Y = Y(:);
     Z = Z(:);
     
-    % If only two arguments, then plot as is
-    if nargin == 0 || nargin == 2
-        h = plot3(X, Y, Z);
-    end
-    
     % If linespec given, then use it
-    if nargin >= 3
-        if mod(nargin, 2) == 1
-            h = plot3(X, Y, Z, varargin{1});
-            start = 2;
-        else
-            h = plot3(X, Y, Z);
-            start = 1;
-        end
-        
-        % Now apply the rest of the var string
-        if ~isempty(varargin)
-            for i=start:2:length(varargin)
-                set(h, varargin{i}, varargin{i+1});
-            end
-        end
-        
+    if mod(length(remaining_args),2) == 1 ,
+        % There's an odd number of remaining args, so assume the first is a
+        % linespec
+        linespec = remaining_args{1} ;
+        remaining_args = remaining_args(2:end) ;
+        h = plot3(ax, X, Y, Z, linespec);        
+    else
+        % There's a an even number of remaining args, so plot without
+        % linespec
+        h = plot3(ax, X, Y, Z);
     end
-    
+        
+    % Now apply the rest of the args
+    for i = 1:2:length(remaining_args) ,
+        set(h, remaining_args{i}, remaining_args{i+1});
+    end    
 end
