@@ -15,7 +15,8 @@ function [dA_tree, root] = spanning_tree_adjacency_from_graph_adjacency(A)
     
     % Find the shortest path to the root from each node    
     node_count = size(A,1) ;
-    pred = graphshortestpath_pred_only(A, root, 'directed', false, 'method', 'BFS') ;
+    [~,pred] = graphtraverse(A, root, 'Method', 'BFS', 'Directed', false) ;
+    %pred = graphshortestpath_pred_only(A, root, 'directed', false, 'method', 'BFS') ;
     tree_ij_pairs = [((1:size(A,1))') (pred(:))] ;  % each row is a (child, parent)
     tree_ij_pairs(tree_ij_pairs(:,2)==0,:) = [];  % delete the row with the root as the child, and node 0 as the parent
 
