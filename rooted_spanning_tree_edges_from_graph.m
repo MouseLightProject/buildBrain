@@ -19,7 +19,8 @@ function tree_ij_pairs = rooted_spanning_tree_edges_from_graph(A, root)
         [~, min_degree_index] = min(degree_modified) ;  % min degree is hopefully one, but sometimes not possible (e.g. if graph is just a loop)
         root = min_degree_index ;
     end
-    pred = graphshortestpath_pred_only(A, root, 'directed', false, 'method', 'BFS') ;
+    %pred = graphshortestpath_pred_only(A, root, 'directed', false, 'method', 'BFS') ;
+    [~,pred] = graphtraverse(A, root, 'Method', 'BFS', 'Directed', false) ;
     tree_ij_pairs = [((1:size(A,1))') (pred(:))] ;  % each row is a (child, parent)
     tree_ij_pairs(tree_ij_pairs(:,2)==0,:) = [];  % delete the row with the root as the child, and node 0 as the parent
 end
