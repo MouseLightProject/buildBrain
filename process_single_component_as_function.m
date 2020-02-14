@@ -17,7 +17,11 @@ function named_tree = process_single_component_as_function(component_id, ...
     end
                                                        
     % Get a spanning tree
-    dA_spanning = spanning_tree_adjacency_from_graph_adjacency(A_for_component) ;
+    degree = full(sum(A_for_component)) ;
+    degree_modified = degree ;
+    degree_modified(degree==0) = +inf ;
+    [~, min_degree_node_index] = min(degree_modified) ;  % min degree is hopefully one, but sometimes not possible (e.g. if graph is just a loop)
+    dA_spanning = rooted_tree_from_connected_graph(A_for_component, min_degree_node_index) ;
     A_spanning = max(dA_spanning, dA_spanning') ;
     
     if do_visualize
@@ -55,8 +59,6 @@ function named_tree = process_single_component_as_function(component_id, ...
         drawnow
     end  
     
-    %%
-    %[A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;    
         
     % Decimate chains
     G_decimated_as_chains_using_pruned_node_ids = decimate_chains(G_pruned_as_chains, xyz_smoothed, sampling_interval) ;
