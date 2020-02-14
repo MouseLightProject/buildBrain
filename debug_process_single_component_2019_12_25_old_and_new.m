@@ -70,7 +70,7 @@ max_component_id = length(size_from_component_id) ;
 
 
 % Extract only medium-sized components
-is_medium_sized = (100<=size_from_component_id) & (size_from_component_id<=100) ;
+is_medium_sized = (1000<=size_from_component_id) & (size_from_component_id<=1000) ;
 component_from_round_2_component_index = component_from_component_id(is_medium_sized) ;
 component_id_from_component_id = (1:max_component_id) ;
 component_id_from_round_2_compenent_index = component_id_from_component_id(is_medium_sized) ;
@@ -78,24 +78,28 @@ size_from_round_2_component_index = size_from_component_id(is_medium_sized) ;
 round_2_component_count = length(component_from_round_2_component_index) ;
 
 % Extract some small number of those
-max_component_count = 10 ;
+max_component_count = 20 ;
 round_3_component_count = min(max_component_count, round_2_component_count) ;
 component_id_from_round_3_compenent_index = component_id_from_round_2_compenent_index(1:round_3_component_count) ;
 component_from_round_3_component_index = component_from_round_2_component_index(1:round_3_component_count) ;
 size_from_round_3_component_index = size_from_round_2_component_index(1:round_3_component_count) ;
 
 % Extract just the ones of interest
-component_id_from_round_4_compenent_index = component_id_from_round_3_compenent_index(5:6) ;
-component_from_round_4_component_index = component_from_round_3_component_index(5:6) ;
-size_from_round_4_component_index = size_from_round_3_component_index(5:6) ;
+component_id_from_round_4_compenent_index = component_id_from_round_3_compenent_index(9) ;
+component_from_round_4_component_index = component_from_round_3_component_index(9) ;
+size_from_round_4_component_index = size_from_round_3_component_index(9) ;
 
+% Choose which one is final
+component_id_from_round_n_compenent_index = component_id_from_round_4_compenent_index ;
+component_from_round_n_component_index = component_from_round_4_component_index ;
+size_from_round_n_component_index = size_from_round_4_component_index ;
 
 %%
 forest_of_named_trees_old = named_trees_from_options_old(skeleton_graph, ...
                                                          skeleton_ijks, ...
-                                                         component_id_from_round_4_compenent_index, ...
-                                                         component_from_round_4_component_index, ...
-                                                         size_from_round_4_component_index, ...
+                                                         component_id_from_round_n_compenent_index, ...
+                                                         component_from_round_n_component_index, ...
+                                                         size_from_round_n_component_index, ...
                                                          max_component_id, ...
                                                          options, ...
                                                          params)
@@ -103,9 +107,9 @@ forest_of_named_trees_old = named_trees_from_options_old(skeleton_graph, ...
 %%
 forest_of_named_trees = named_trees_from_options(skeleton_graph, ...
                                                  skeleton_ijks, ...
-                                                 component_id_from_round_4_compenent_index, ...
-                                                 component_from_round_4_component_index, ...
-                                                 size_from_round_4_component_index, ...
+                                                 component_id_from_round_n_compenent_index, ...
+                                                 component_from_round_n_component_index, ...
+                                                 size_from_round_n_component_index, ...
                                                  max_component_id, ...
                                                  options, ...
                                                  params)
@@ -123,10 +127,15 @@ for i = 1 : length(forest_of_named_trees_old) ,
     new_xyz = new_named_tree.xyz ;
     
     f = figure('Color', 'w') ;
-    a = axes(f) ;  %#ok<LAXES>
-    gplot3(old_dA, old_xyz-old_centroid, 'Color', 'b') ;
-    title(a, old_named_tree.name) ;
-    hold(a,'on') ;
-    gplot3(new_dA, new_xyz-old_centroid, 'Color', 'r') ;
-    hold(a,'off') ;
+    ax = axes(f) ;  %#ok<LAXES>
+    gplot3(ax, old_dA, old_xyz-old_centroid, 'Color', 'b') ;
+    title(ax, old_named_tree.name) ;
+    hold(ax, 'on') ;
+    gplot3(ax, new_dA, new_xyz-old_centroid, 'Color', 'r') ;
+    hold(ax, 'off') ;
+    axis(ax, 'vis3d') ;
+    title(ax, sprintf('%s', new_named_tree.name)) ;
+    xlabel(ax, 'x (um)') ;
+    ylabel(ax, 'y (um)') ;
+    zlabel(ax, 'z (um)') ;
 end

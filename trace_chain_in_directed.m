@@ -17,17 +17,23 @@ function [node_ids_in_chain, end_node_id] = trace_chain_in_directed(dA, start_no
     is_done = false ;
     while ~is_done ,
         % Get the adjacent nodes
-        adjacent_node_ids = find(dA(current_node_id,:)) ;
+        adjacent_node_ids = find(dA(current_node_id,:)) ;  % neighbors following the edges
         % See if the set of next nodes is a singleton set
         if isscalar(adjacent_node_ids) ,
-            % Add the current node to the chain
-            node_ids_in_chain = [node_ids_in_chain current_node_id] ; %#ok<AGROW>  % add the current node to the list
-            % Set of next nodes is singleton, so
-            % set up for next iteration
-            current_node_id = adjacent_node_ids ;
-        else                    
-            % If the set of next nodes is not a singleton set, then exit the
-            % loop
+            antiadjacent_node_ids = find(dA(:,current_node_id)) ;  % neighbors following the edges backwards
+            if length(antiadjacent_node_ids)<=1 || current_node_id==start_node_id ,
+                % Add the current node to the chain
+                node_ids_in_chain = [node_ids_in_chain current_node_id] ; %#ok<AGROW>  % add the current node to the list
+                % Set of adjacent nodes is singleton, so
+                % set up for next iteration
+                current_node_id = adjacent_node_ids ;
+            else
+                % We've reached a branch node, so exit
+                end_node_id = current_node_id ;
+                is_done = true ;
+            end
+        else
+            % We've reached the root, so exit
             end_node_id = current_node_id ;
             is_done = true ;
         end

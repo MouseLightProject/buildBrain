@@ -32,8 +32,8 @@ function named_tree = process_single_component_as_function(component_id, ...
         drawnow
     end
     
-%     %%
-%     pruned_node_count = size(xyz_pruned, 1) ;    
+    %%
+    % pruned_node_count = size(xyz_pruned, 1) ;    
 %     if pruned_node_count<size_threshold ,
 %         fprintf('Component with id %d fails to meet the size threshold (%d) after pruning, so discarding.  (It contains %d nodes.)\n', ...
 %                 component_id, ...
@@ -43,10 +43,10 @@ function named_tree = process_single_component_as_function(component_id, ...
 %     end
 
     % Decompose tree into chains
-    pruned_node_ids_from_chain_id = chains_from_tree(A_pruned) ;
+    G_pruned_as_chains = chains_from_tree(A_pruned) ;
 
     % Smooth the z coords of chain nodes
-    xyz_smoothed = smooth_chains(pruned_node_ids_from_chain_id, xyz_pruned, smoothing_filter_width) ;
+    xyz_smoothed = smooth_chains(G_pruned_as_chains, xyz_pruned, smoothing_filter_width) ;
     %xyz_smoothed = xyz_pruned ;
 
     % Visualize the smoothed tree
@@ -59,19 +59,19 @@ function named_tree = process_single_component_as_function(component_id, ...
     %[A_decimated, xyz_decimated] = decimate_tree(A_pruned, xyz_pruned, sampling_interval) ;    
         
     % Decimate chains
-    decimated_node_ids_from_chain_id = decimate_chains(pruned_node_ids_from_chain_id, xyz_smoothed, sampling_interval) ;
+    G_decimated_as_chains_using_pruned_node_ids = decimate_chains(G_pruned_as_chains, xyz_smoothed, sampling_interval) ;
     %decimated_node_ids_from_chain_id = pruned_node_ids_from_chain_id ;
     
     % Convert chains to edges
-    edges_using_decimated_node_ids = edges_from_chains(decimated_node_ids_from_chain_id) ;
+    G_decimated_as_edges_using_pruned_node_ids = edges_from_chains(G_decimated_as_chains_using_pruned_node_ids) ;
 
     % Defragment the node ids
-    [edges_using_decimated_node_ids, xyz_decimated, pruned_node_id_from_decimated_node_id] = ...
-        defragment_node_ids_in_edges(edges_using_decimated_node_ids, xyz_smoothed) ;
+    [G_decimated_as_edges, xyz_decimated, pruned_node_id_from_decimated_node_id] = ...
+        defragment_node_ids_in_edges(G_decimated_as_edges_using_pruned_node_ids, xyz_smoothed) ;
 
     % Convert edges to (sparse) adjacency
     decimated_node_count = length(pruned_node_id_from_decimated_node_id) ;
-    A_decimated = undirected_adjacency_from_edges(edges_using_decimated_node_ids, decimated_node_count) ;    
+    A_decimated = undirected_adjacency_from_edges(G_decimated_as_edges, decimated_node_count) ;    
     
     % Visualize the decimated tree
     if do_visualize

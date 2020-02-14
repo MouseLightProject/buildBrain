@@ -1,18 +1,22 @@
-function result = decimate_chain(node_ids_in_chain, xyz, desired_sampling_interval)
+function result = decimate_chain(chain, xyz, desired_sampling_interval)
     % Get length of chain
-    xyz_branch = xyz(node_ids_in_chain, :) ;
-    dxyz_branch = diff(xyz_branch) ;        
-    ds = sqrt( sum(dxyz_branch.^2, 2) ) ;  % length of each edge in the chain of nodes 
+    xyz_chain = xyz(chain, :) ;
+    dxyz_chain = diff(xyz_chain) ;        
+    ds = sqrt( sum(dxyz_chain.^2, 2) ) ;  % length of each edge in the chain of nodes 
     s = [ 0 ; cumsum(ds) ] ;
     % Determine which nodes to keep, taking care that we always keep
     % the chain ends
     chain_length_in_um = s(end) ;
     if chain_length_in_um > desired_sampling_interval ,
-        desired_s = (0:desired_sampling_interval:chain_length_in_um-desired_sampling_interval)' ;
-        distance_matrix = pdist2(desired_s, s(:)) ;
-        [~,idx] = min(distance_matrix, [], 2) ;
-        result = [node_ids_in_chain(idx) node_ids_in_chain(end)] ;
+        do_keep = logical([1;diff(floor(s/desired_sampling_interval))]) ;
+        do_keep(end) = true ;
+        result = chain(do_keep) ;
+        % Code below leads to repeated node_ids!
+%         desired_s = (0:desired_sampling_interval:chain_length_in_um-desired_sampling_interval)' ;
+%         distance_matrix = pdist2(desired_s, s(:)) ;
+%         [~,idx] = min(distance_matrix, [], 2) ;
+%         result = [chain(idx) chain(end)] ;
     else
-        result = [node_ids_in_chain(1) node_ids_in_chain(end)] ;
+        result = [chain(1) chain(end)] ;
     end
 end

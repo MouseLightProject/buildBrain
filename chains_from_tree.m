@@ -21,8 +21,8 @@ function node_ids_from_chain_id = chains_from_tree(A)
     
     % Find the non-root nexus nodes---each of these will be the start of a
     % chain
-    in_degree_from_node_id = sum(dA,1)' ;
-    out_degree_from_node_id = sum(dA,2) ;
+    in_degree_from_node_id = full(sum(dA,1)') ;
+    out_degree_from_node_id = full(sum(dA,2)) ;
     is_root_from_node_id = (out_degree_from_node_id==0) ;
     is_chain_node_from_node_id = (in_degree_from_node_id==1) & (out_degree_from_node_id==1) ;
     is_nexus_from_node_id = ~is_chain_node_from_node_id ;
