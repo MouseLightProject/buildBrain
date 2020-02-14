@@ -17,6 +17,9 @@ function [A_tree_output, xyz_output, did_prune_some] = prune_tree_some(A_tree_in
     % length_threshold should be in um.  Leaf chains shorter than that will be
     % trimmed off.
     
+    % Get the chains
+    chains = chains_from_tree(A_tree_input) ;
+    
     % Find the leaf nodes
     degree = full(sum(A_tree_input)) ;
     is_leaf_node = (degree==1) ;

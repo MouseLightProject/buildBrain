@@ -70,7 +70,7 @@ max_component_id = length(size_from_component_id) ;
 
 
 % Extract only medium-sized components
-is_medium_sized = (1000<=size_from_component_id) & (size_from_component_id<=1000) ;
+is_medium_sized = (10000<=size_from_component_id) & (size_from_component_id<=10100) ;
 component_from_round_2_component_index = component_from_component_id(is_medium_sized) ;
 component_id_from_component_id = (1:max_component_id) ;
 component_id_from_round_2_compenent_index = component_id_from_component_id(is_medium_sized) ;
@@ -84,15 +84,15 @@ component_id_from_round_3_compenent_index = component_id_from_round_2_compenent_
 component_from_round_3_component_index = component_from_round_2_component_index(1:round_3_component_count) ;
 size_from_round_3_component_index = size_from_round_2_component_index(1:round_3_component_count) ;
 
-% Extract just the ones of interest
-component_id_from_round_4_compenent_index = component_id_from_round_3_compenent_index(9) ;
-component_from_round_4_component_index = component_from_round_3_component_index(9) ;
-size_from_round_4_component_index = size_from_round_3_component_index(9) ;
+% % Extract just the ones of interest
+% component_id_from_round_4_compenent_index = component_id_from_round_3_compenent_index(9) ;
+% component_from_round_4_component_index = component_from_round_3_component_index(9) ;
+% size_from_round_4_component_index = size_from_round_3_component_index(9) ;
 
 % Choose which one is final
-component_id_from_round_n_compenent_index = component_id_from_round_4_compenent_index ;
-component_from_round_n_component_index = component_from_round_4_component_index ;
-size_from_round_n_component_index = size_from_round_4_component_index ;
+component_id_from_round_n_compenent_index = component_id_from_round_3_compenent_index ;
+component_from_round_n_component_index = component_from_round_3_component_index ;
+size_from_round_n_component_index = size_from_round_3_component_index ;
 
 %%
 forest_of_named_trees_old = named_trees_from_options_old(skeleton_graph, ...
