@@ -118,8 +118,8 @@ parfor_progress(components_to_process_serially_count) ;
 
 % Do the big ones in a regular for loop, since each requires a lot of
 % memory    
-%for process_serially_index = 1 : components_to_process_serially_count ,
-for process_serially_index = 1 : 100 ,
+for process_serially_index = 1 : components_to_process_serially_count ,
+%for process_serially_index = 1 : 100 ,
     component_id = component_id_from_serial_will_process_index(process_serially_index) ;        
     
     % Process this component
