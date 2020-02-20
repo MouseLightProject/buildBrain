@@ -25,7 +25,7 @@ function node_ids_from_chain_id = chains_from_tree(A_tree)
     if ~isempty(branch_node_ids) ,
         root_node_id = branch_node_ids(1) ;
     else
-        leaf_node_ids = find(degree_from_node_ids==1) ;
+        leaf_node_ids = find(degree_from_node_id==1) ;
         if ~isempty(leaf_node_ids) ,
             root_node_id = leaf_node_ids(1) ;
         else

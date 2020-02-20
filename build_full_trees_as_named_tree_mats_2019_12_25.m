@@ -5,15 +5,15 @@ whole_brain_h5_p_map_properties_group_path = '/prob0_props' ;
 skeleton_graph_mat_file_path = sprintf('/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/%s/skeleton-graph.mat', sample_date) ;
 output_folder_path = sprintf('/groups/mousebrainmicro/mousebrainmicro/cluster/Reconstructions/%s/build-brain-output/full-as-named-tree-mats', sample_date) ;
 
-size_threshold = 10 ;  % node count
+size_threshold = 100 ;  % node count
 smoothing_filter_width = 10 ;  % nodes
 length_threshold = 10 ;  % um, leaf chains shorter than this are pruned off
 do_visualize = false ;
 sampling_interval = 5 ;  % um
 
-maximum_core_count_desired = 40 ;
+maximum_core_count_desired = 20 ;
 do_force_computations = false ;
-do_all_computations_serially = true ;
+do_all_computations_serially = false ;
 
 % Extract parameters from p-map .h5 file
 origin_heckbertian = h5read(whole_brain_h5_p_map_file_path, [whole_brain_h5_p_map_properties_group_path,'/origin'])/1000 ;  % um
@@ -44,6 +44,7 @@ else
     save(fractionated_components_file_path, 'component_from_component_id', 'size_from_component_id', 'maximum_component_size', '-v7.3') ;
 end
 component_count = length(component_from_component_id) ;
+max_component_id = component_count ;
 component_id_from_component_id = (1:component_count)' ;
 fprintf('There are %d components.\n', component_count) ;
 if component_count > 0 ,
@@ -58,7 +59,7 @@ skeleton_xyzs = origin_heckbertian + spacing_at_full_zoom .* (skeleton_ijks-0.5)
   % NB: Using Erhan-style coords, here, to match the existing code.
   % Also, Erhan-style coords are Heckbertian, which I think are better
   % anyway.
-
+clear skeleton_ijks
 
 runtic = tic;
 
@@ -81,7 +82,7 @@ does_output_exist_from_processing_index = false(1, components_to_process_count) 
 if do_force_computations ,
     progress_bar.update(components_to_process_count) ;
 else
-    digits_needed_for_index = floor(log10(component_count)) + 1 ;
+    digits_needed_for_index = floor(log10(max_component_id)) + 1 ;
     tree_name_template = sprintf('auto-cc-%%0%dd', digits_needed_for_index) ;  % e.g. 'tree-%04d'      
     for processing_index = 1 : components_to_process_count ,
         component_id = ...
@@ -129,20 +130,24 @@ for process_serially_index = 1 : components_to_process_serially_count ,
     A_for_component = A(component, component) ;  
 
     named_tree = process_single_component_as_function(component_id, ...
-                                                      component_count, ...
+                                                      max_component_id, ...
                                                       A_for_component, ...
                                                       xyzs_for_component, ...
+                                                      size_threshold, ...
                                                       smoothing_filter_width, ...
                                                       length_threshold, ...
                                                       do_visualize, ...
                                                       sampling_interval) ;
+                                                  
+    % If tree too small after pruning, named_tree will be empty
+    if ~isempty(named_tree) ,
+        % Compute the output file path
+        tree_mat_file_name = sprintf('%s.mat', named_tree.name) ;
+        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
 
-    % Compute the output file path
-    tree_mat_file_name = sprintf('%s.mat', named_tree.name) ;
-    tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
-    
-    % Write full tree as a .mat file
-    save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+        % Write full tree as a .mat file
+        save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+    end
     
     % Update the progress bar
     parfor_progress() ;
@@ -171,20 +176,24 @@ parfor process_in_parallel_index = 1 : components_to_process_in_parallel_count ,
     A_for_component = A_local(component, component) ;  
     
     named_tree = process_single_component_as_function(component_id, ...
-                                                      component_count, ...
+                                                      max_component_id, ...
                                                       A_for_component, ...
                                                       xyzs_for_component, ...
+                                                      size_threshold, ...                                                      
                                                       smoothing_filter_width, ...
                                                       length_threshold, ...
                                                       do_visualize, ...
                                                       sampling_interval) ;
 
-    % Compute the output file path
-    tree_mat_file_name = sprintf('%s.mat', named_tree.name) ;
-    tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
-    
-    % Write full tree as a .mat file
-    save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+    % If tree too small after pruning, named_tree will be empty
+    if ~isempty(named_tree) ,
+        % Compute the output file path
+        tree_mat_file_name = sprintf('%s.mat', named_tree.name) ;
+        tree_mat_file_path = fullfile(output_folder_path, tree_mat_file_name);    
+
+        % Write full tree as a .mat file
+        save_named_tree_as_mat(tree_mat_file_path, named_tree) ;
+    end
                                               
     % Update the progress bar
     parfor_progress() ;
